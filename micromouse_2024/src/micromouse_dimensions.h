@@ -17,7 +17,7 @@
 /*----------------------------------------------------------------------------*/
 /* CHANGE ACCORDING TO MAZE: */
 /* length of maze walls from side to side in millimeters */
-#define MCI_MAZE_WALL_LENGTH_MM                 (165)
+#define MCI_MAZE_WALL_LENGTH_MM                 (180)
 /* width of maze pillar from side to side in millimeters */
 #define MCI_MAZE_PILLAR_WIDTH_MM                (12)
 /* IR sensor reading tolerances */

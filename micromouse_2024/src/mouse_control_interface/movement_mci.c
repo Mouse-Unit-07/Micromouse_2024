@@ -71,8 +71,8 @@ void mci_MoveForward1Revolution(void)
     mhi_ClearEncoder2EdgeCount();
     
     /* set speed and start in forward direction */
-    mhi_SetWheelMotor1Speed(MCI_FORWARD_SLOW_SPEED);
-    mhi_SetWheelMotor2Speed(MCI_FORWARD_SLOW_SPEED);
+    mhi_SetWheelMotor1Speed(MCI_FORWARD_FAST_SPEED);
+    mhi_SetWheelMotor2Speed(MCI_FORWARD_FAST_SPEED);
     mhi_StartWheelMotor1Forward();
     mhi_StartWheelMotor2Forward();
     
@@ -126,18 +126,18 @@ void mci_MoveForward1MazeSquarePid(void)
 {
     /* initialize encoder PID constants (integral term not needed) */
     float kp = 2;      /* proportional term */
-    float kd = 0;    /* derivative term */
+    float kd = 0.1;    /* derivative term */
     
     /* initialize sensor PD constants */
-    float kpSensor = 0;
-    float kdSensor = 0;
+    float kpSensor = 0.2;
+    float kdSensor = 0.1;
     
     /* initialize left sensor PD constants */
-    float kpSensorL = 0; // was 5
+    float kpSensorL = 0.2; // was 5
     float kdSensorL = 0;
     
     /* initialize right sensor PD constants */
-    float kpSensorR = 0; // was 5
+    float kpSensorR = 0.2; // was 5
     float kdSensorR = 0;
     
     /* other encoder PID variables */
@@ -170,12 +170,13 @@ void mci_MoveForward1MazeSquarePid(void)
     uint32_t ir3Reading = 0u;
     
     /* configure both motors to move forward at base speed */
-    mhi_SetWheelMotor1Speed(MCI_FORWARD_SLOW_SPEED);
-    mhi_SetWheelMotor2Speed(MCI_FORWARD_SLOW_SPEED);
+    mhi_SetWheelMotor1Speed(MCI_FORWARD_FAST_SPEED);
+    mhi_SetWheelMotor2Speed(MCI_FORWARD_FAST_SPEED);
     mhi_StartWheelMotor1Forward();
     mhi_StartWheelMotor2Forward();
     
     /* main control loop */
+	
     while((mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount()) < targetPosition)
     {
         /* stop if there's a wall in front */
@@ -188,7 +189,7 @@ void mci_MoveForward1MazeSquarePid(void)
         
         //output error sensors
 //         if ((leftWall == 1U) && (rightWall == 1U))
-//         {
+//         {mhi_DelayMs(1000);
             /* read left wall sensor */
             ir2Reading = mhi_ReadIr2();
             
@@ -232,7 +233,7 @@ void mci_MoveForward1MazeSquarePid(void)
 //             // 			 if(targetAngle - (g_sbu_mm_Motor1EncoderEdgeCount - g_sbu_mm_Motor2EncoderEdgeCount) < -45){
 //             // 				outputSensors*=-1;
 //             // 			 }
-//             prevErrorSensors = errorSensors;
+             prevErrorSensors = errorSensors;
 //             // sbu_mm_ClrLed1();
 //         }
 //         
@@ -262,13 +263,17 @@ void mci_MoveForward1MazeSquarePid(void)
 //         }
         
         /* calculate error (for proportional term) */
+		mhi_PrintInt(mhi_GetEncoder1EdgeCount());
+		mhi_PrintString(" ");
+		mhi_PrintInt(mhi_GetEncoder2EdgeCount());
+		mhi_PrintString("\r\n");
         error = targetAngle - ((int32_t)mhi_GetEncoder1EdgeCount() - (int32_t)mhi_GetEncoder2EdgeCount());
 //         mhi_PrintString("e: ");
 //         if(error < 0)
 //             mhi_PrintString("-");
 //         mhi_PrintInt((uint32_t)abs(error));
 //         mhi_PrintString("\r\n");
-        error += outputSensors;
+       // error += outputSensors;
 //         mhi_PrintString("e2: ");
 //         if(error < 0)
 //             mhi_PrintString("-");
@@ -276,6 +281,7 @@ void mci_MoveForward1MazeSquarePid(void)
 //         mhi_PrintString("\r\n");
         
         /* calculate difference in error (for the derivative term) */
+		error += outputSensors;
         dError = error - prevError;
         prevError = error;
         
@@ -296,8 +302,8 @@ void mci_MoveForward1MazeSquarePid(void)
          mhi_PrintString("\r\n");
         
         /* calculate new speeds */
-        newLeftSpeed = sf_constrain(MCI_FORWARD_SLOW_SPEED - output, 255, -255);
-        newRightSpeed = sf_constrain(MCI_FORWARD_SLOW_SPEED + output, 255, -255);
+        newLeftSpeed = sf_constrain(MCI_FORWARD_SLOW_SPEED + output, 255, -255);
+        newRightSpeed = sf_constrain(MCI_FORWARD_SLOW_SPEED - output, 255, -255);
          mhi_PrintString("l: ");
          if(newLeftSpeed < 0)
              mhi_PrintString("-");
@@ -310,7 +316,6 @@ void mci_MoveForward1MazeSquarePid(void)
          mhi_PrintString("\r\n");
          mhi_PrintString("\r\n");
         
-        error += outputSensors;
         
         /* set new motor speeds */
         if(newLeftSpeed < 0)

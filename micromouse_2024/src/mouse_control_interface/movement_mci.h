@@ -19,7 +19,7 @@
 /*                                Definitions                                 */
 /*----------------------------------------------------------------------------*/
 #define MCI_TURN_SPEED            (100)
-#define MCI_FORWARD_FAST_SPEED    (72)
+#define MCI_FORWARD_FAST_SPEED    (200)
 #define MCI_FORWARD_SLOW_SPEED    (110)
 
 /* ServoCity's N20 4900RPM Gear Motor: 60.8077 countable events per rev */

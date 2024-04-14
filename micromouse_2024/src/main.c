@@ -77,10 +77,14 @@ int main (void)
     mhi_DelayMs(5000);
     
     /* infinite while loop */
+	
+	
     while(1)
     {
         mhi_CheckLowBattery();
-         
+		
+        mci_MoveForward1MazeSquarePid();
+		mhi_DelayMs(1000);
 //         time1 = mhi_GetTimerCount();
 //         while ((time2 - time1) < 60)
 //         {
@@ -93,8 +97,8 @@ int main (void)
         //mci_PrintWallSensorReadings();
         //mci_PrintWallPresence();
         
-        //mci_MoveForward1Revolution();
-        mci_MoveForward1MazeSquarePid();
+//         mci_MoveForward1Revolution();
+// 		mhi_DelayMs(1000);//
         //mhi_DelayMs(3000);
         
 //         newEdgeCount = mhi_GetConfigPinEdgeCount();
