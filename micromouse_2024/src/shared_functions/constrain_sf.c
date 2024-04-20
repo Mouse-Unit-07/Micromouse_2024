@@ -1,6 +1,6 @@
 /*-------------------------------- FILE INFO -----------------------------------
 * Filename        : constrain_sf.c
-* Author          : Ryuichi Lin
+* Author          : Team Kirbo
 * Revision        : 1.0
 * Updated         : 2024-04-13
 * Purpose         : shared functions layer

@@ -1,6 +1,6 @@
 /*-------------------------------- FILE INFO -----------------------------------
 * Filename        : movement_mci.c
-* Author          : Ryuichi Lin
+* Author          : Team Kirbo
 * Revision        : 1.0
 * Updated         : 2024-04-13
 * Purpose         : mouses control interface layer
