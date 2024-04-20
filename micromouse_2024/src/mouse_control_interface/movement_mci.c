@@ -28,6 +28,7 @@
 #include "mouse_hardware_interface/motors_mhi.h"
 #include "mouse_hardware_interface/interrupts_mhi.h"
 #include "mouse_control_interface/movement_mci.h"
+#include "mouse_control_interface/walldetection_mci.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                Definitions                                 */
@@ -220,9 +221,13 @@ void mci_MoveForward1MazeSquarePid(void)
             mci_SetRightWallUpdateUnavailable();
         }
         
-        /* try to check walls */
-        leftWall = mci_CheckLeftWall();
-        rightWall = mci_CheckRightWall();
+        /* try to update global wall presences- no need to save return value */
+        mci_CheckLeftWall();
+        mci_CheckRightWall();
+        
+        /* check for walls for PID move forward */
+        leftWall = mci_CheckLeftWallMoveForwardPid();
+        rightWall = mci_CheckRightWallMoveForwardPid();
         
         //output error sensors
         if ((leftWall == MCI_WALL_FOUND) && (rightWall == MCI_WALL_FOUND))
@@ -490,6 +495,62 @@ void mci_AdjustToFrontWall(void)
     mhi_ClearEncoder2EdgeCount();
     mhi_SetWheelMotor1Speed(0);
     mhi_SetWheelMotor2Speed(0);
+}
+
+/**
+* Check for walls on left without an update flag to move forward w/ PID
+*
+* \param None
+* \retval MCI_WALL_NOT_FOUND
+* \retval MCI_WALL_FOUND
+*/
+mci_wall_presence_t mci_CheckLeftWallMoveForwardPid(void)
+{
+    uint32_t reading = 0u;
+    mci_wall_presence_t presence = MCI_WALL_NOT_FOUND;
+    
+    /* read left IR sensor */
+    reading = mhi_ReadIr2();
+    
+    /* update front wall presence variable if available */
+    if (reading >= MCI_LEFT_SENSOR_READING_THRESHOLD_RAW)
+    {
+        presence = MCI_WALL_FOUND;
+    }
+    else
+    {
+        presence = MCI_WALL_NOT_FOUND;
+    }
+    
+    return presence;
+}
+
+/**
+* Check for walls on right without an update flag to move forward w/ PID
+*
+* \param None
+* \retval MCI_WALL_NOT_FOUND
+* \retval MCI_WALL_FOUND
+*/
+mci_wall_presence_t mci_CheckRightWallMoveForwardPid(void)
+{
+    uint32_t reading = 0u;
+    mci_wall_presence_t presence = MCI_WALL_NOT_FOUND;
+    
+    /* read left IR sensor */
+    reading = mhi_ReadIr3();
+    
+    /* update front wall presence variable if available */
+    if (reading >= MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW)
+    {
+        presence = MCI_WALL_FOUND;
+    }
+    else
+    {
+        presence = MCI_WALL_NOT_FOUND;
+    }
+    
+    return presence;
 }
 
 /*----------------------------------------------------------------------------*/
