@@ -71,18 +71,22 @@ void mci_MoveForward1Revolution(void)
     mhi_ClearEncoder2EdgeCount();
     
     /* set speed and start in forward direction */
-    mhi_SetWheelMotor1Speed(MCI_FORWARD_FAST_SPEED);
-    mhi_SetWheelMotor2Speed(MCI_FORWARD_FAST_SPEED);
+    mhi_SetWheelMotor1Speed(MCI_MINIMUM_SPEED);
     mhi_StartWheelMotor1Forward();
+    mhi_SetWheelMotor2Speed(MCI_MINIMUM_SPEED);
     mhi_StartWheelMotor2Forward();
     
     /* keep moving motors until encoder edge counts are reached */
     while((!rightDone) || (!leftDone))
-    {        
-        if ((!rightDone) && (mhi_GetEncoder1EdgeCount() == MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION))
+    {
+        /* right motor */
+        if ((!rightDone) && (mhi_GetEncoder1EdgeCount() >= MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION))
         {
             mhi_StopWheelMotor1();
             rightDone = 1u;
+            mhi_PrintString("stopped motor 1: ");
+            mhi_PrintInt(mhi_GetEncoder1EdgeCount());
+            mhi_PrintString("\r\n");
         }
         else if (mhi_GetEncoder1EdgeCount() >= (MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION / 3))
         {
@@ -90,13 +94,17 @@ void mci_MoveForward1Revolution(void)
         }
         else if (mhi_GetEncoder1EdgeCount() >= ((MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION / 3) * 2))
         {
-            mhi_SetWheelMotor1Speed(MCI_FORWARD_SLOW_SPEED);
+            mhi_SetWheelMotor1Speed(MCI_MINIMUM_SPEED);
         }
         
-        if ((!leftDone) && (mhi_GetEncoder2EdgeCount() == MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION))
+        /* left motor */
+        if ((!leftDone) && (mhi_GetEncoder2EdgeCount() >= MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION))
         {
             mhi_StopWheelMotor2();
             leftDone = 1u;
+            mhi_PrintString("stopped motor 2: ");
+            mhi_PrintInt(mhi_GetEncoder2EdgeCount());
+            mhi_PrintString("\r\n");
         }
         else if (mhi_GetEncoder2EdgeCount() >= (MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION / 3))
         {
@@ -104,9 +112,15 @@ void mci_MoveForward1Revolution(void)
         }
         else if (mhi_GetEncoder2EdgeCount() >= ((MCI_WHEEL_MOTOR_EDGES_PER_REVOLUTION / 3) * 2))
         {
-            mhi_SetWheelMotor2Speed(MCI_FORWARD_SLOW_SPEED);
+            mhi_SetWheelMotor2Speed(MCI_MINIMUM_SPEED);
         }
     }
+    
+    mhi_PrintString("final: ");
+    mhi_PrintInt(mhi_GetEncoder1EdgeCount());
+    mhi_PrintString(" ");
+    mhi_PrintInt(mhi_GetEncoder2EdgeCount());
+    mhi_PrintString("\r\n");
     
     /* clear encoder edge counts and set motor speeds to 0 */
     mhi_ClearEncoder1EdgeCount();
@@ -126,23 +140,23 @@ void mci_MoveForward1MazeSquarePid(void)
 {
     /* initialize encoder PID constants (integral term not needed) */
     float kp = 2;      /* proportional term */
-    float kd = 0.1;    /* derivative term */
+    float kd = 0.2;    /* derivative term */
     
     /* initialize sensor PD constants */
-    float kpSensor = 0.2;
-    float kdSensor = 0.1;
+    float kpSensor = 0.1;
+    float kdSensor = 0.01;
     
     /* initialize left sensor PD constants */
-    float kpSensorL = 0.2; // was 5
-    float kdSensorL = 0;
+    float kpSensorL = 0.5; // was 5
+    float kdSensorL = 5;
     
     /* initialize right sensor PD constants */
-    float kpSensorR = 0.2; // was 5
-    float kdSensorR = 0;
+    float kpSensorR = 0.5; // was 5
+    float kdSensorR = 5;
     
     /* other encoder PID variables */
     int32_t initialPosition = mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount();
-    int32_t targetPosition = initialPosition + (int32_t)((MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE * 2));
+    int32_t targetPosition = initialPosition + (MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE * 2);
     int32_t targetAngle = 0;
     int32_t prevError = 0;
     float error = 0;
@@ -169,27 +183,54 @@ void mci_MoveForward1MazeSquarePid(void)
     uint32_t ir2Reading = 0u;
     uint32_t ir3Reading = 0u;
     
+    /* local wall presence variables */
+    mci_wall_presence_t leftWall = MCI_CANNOT_READ_WALL;
+    mci_wall_presence_t rightWall = MCI_CANNOT_READ_WALL;
+    
     /* configure both motors to move forward at base speed */
     mhi_SetWheelMotor1Speed(MCI_FORWARD_FAST_SPEED);
     mhi_SetWheelMotor2Speed(MCI_FORWARD_FAST_SPEED);
     mhi_StartWheelMotor1Forward();
     mhi_StartWheelMotor2Forward();
     
+    /* allow wall updates on start */
+    mci_SetLeftWallUpdateAvailable();
+    mci_SetRightWallUpdateAvailable();
+    
+    /* set up target and initial position */
+    mhi_ClearEncoder1EdgeCount();
+    mhi_ClearEncoder2EdgeCount();
+    initialPosition = mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount();
+    targetPosition = initialPosition + (MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE * 2);
+    
+    
     /* main control loop */
-	
-    while((mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount()) < targetPosition)
+    while ((mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount()) < targetPosition)
     {
         /* stop if there's a wall in front */
-        // 		if(sbu_mm_CheckForFrontWall() == 1)
-        // 		{
-        // 			break;
-        // 		}
-//         uint32_t leftWall = sbu_mm_CheckForLeftWall();
-//         uint32_t rightWall = sbu_mm_CheckForRightWall();
+        if (((mhi_ReadIr1() + mhi_ReadIr4()) / 2) >= MCI_FRONT_WALL_TOO_CLOSE_THRESHOLD_RAW_30MM_HARD_CODED)
+        {
+            break;
+        }
+        
+        /* prevent wall updates if moved more than 30% */
+        if ( (mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount()) > ((uint32_t)(targetPosition / 2)) )
+        {
+            mci_SetLeftWallUpdateUnavailable();
+            mci_SetRightWallUpdateUnavailable();
+        }
+        
+        /* try to check walls */
+        leftWall = mci_CheckLeftWall();
+        rightWall = mci_CheckRightWall();
         
         //output error sensors
-//         if ((leftWall == 1U) && (rightWall == 1U))
-//         {mhi_DelayMs(1000);
+        if ((leftWall == MCI_WALL_FOUND) && (rightWall == MCI_WALL_FOUND))
+        {   
+            mhi_ClearD2Led();
+            mhi_ClearD3Led();
+            mhi_SetD1Led();
+            
             /* read left wall sensor */
             ir2Reading = mhi_ReadIr2();
             
@@ -198,87 +239,65 @@ void mci_MoveForward1MazeSquarePid(void)
             
             // Error with the sensors
             errorSensorLeft =  MCI_LEFT_SENSOR_READING_THRESHOLD_RAW - ir2Reading;
-//             mhi_PrintInt(abs(errorSensorLeft));
-//             mhi_PrintString(" ");
             errorSensorRight = MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW - ir3Reading;
-//             mhi_PrintInt(abs(errorSensorRight));
-//             mhi_PrintString("\r\n");
             errorSensors =  errorSensorRight - errorSensorLeft;
             dErrorSensors = errorSensors - prevErrorSensors;
             
             // Current way of trying to add a pid controller to the mouse using the sensors going to aggregate with the other output
             outputSensors = (kpSensor * errorSensors) + (kdSensor * dErrorSensors);
-//             mhi_PrintString("s: ");
-//             if(outputSensors < 0)
-//                 mhi_PrintString("-");
-//             mhi_PrintInt((uint32_t)abs(outputSensors));
-//             mhi_PrintString("\r\n");
             
             prevErrorSensors = errorSensors;
-        //}
+        }
         
-//         else if((leftWall == 1U) && (rightWall == 0U)) {
-//             //Read left one
-//             //sbu_mm_SetLed1();
-//             sbu_mm_EnableIR2();
-//             ir2Reading = sbu_mm_ReadADC();
-//             sbu_mm_DisableIR2();
-//             
-//             //error with just left sensor
-//             errorSensorLeft = g_sbu_mm_Ir2WallDetectedThreshold - ir2Reading;
-//             //errorSensors = -errorSensorLeft * 2;
-//             errorSensors = -errorSensorLeft;
-//             dErrorSensors = errorSensors - prevErrorSensors;
-//             outputSensors = (kpSensorL * errorSensors) + (kdSensorL * dErrorSensors);
-//             // 			 if(targetAngle - (g_sbu_mm_Motor1EncoderEdgeCount - g_sbu_mm_Motor2EncoderEdgeCount) < -45){
-//             // 				outputSensors*=-1;
-//             // 			 }
-             prevErrorSensors = errorSensors;
-//             // sbu_mm_ClrLed1();
-//         }
-//         
-//         else if((rightWall == 1U) && (leftWall == 0U)){
-//             //sbu_mm_SetLed2();
-//             //Read Right one
-//             sbu_mm_EnableIR3();
-//             ir3Reading = sbu_mm_ReadADC();
-//             sbu_mm_DisableIR3();
-//             
-//             errorSensorRight = g_sbu_mm_Ir3WallDetectedThreshold - ir3Reading;
-//             //errorSensors = errorSensorRight * 2;
-//             errorSensors = errorSensorRight;
-//             dErrorSensors = errorSensors - prevErrorSensors;
-//             outputSensors = (kpSensorR * errorSensors) + (kdSensorR * dErrorSensors);
-//             // 			  if(targetAngle - (g_sbu_mm_Motor1EncoderEdgeCount - g_sbu_mm_Motor2EncoderEdgeCount) < 45){
-//             // 				  outputSensors*=-1;
-//             // 			  }
-//             prevErrorSensors = errorSensors;
-//             //sbu_mm_ClrLed2();
-//         }
+        else if ((leftWall == MCI_WALL_FOUND) && (rightWall != MCI_WALL_FOUND)) 
+        {   
+            mhi_ClearD1Led();
+            mhi_ClearD3Led();
+            mhi_SetD2Led();
+            
+            //Read left one
+            ir2Reading = mhi_ReadIr2();
+             
+            //error with just left sensor
+            errorSensorLeft = MCI_LEFT_SENSOR_READING_THRESHOLD_RAW - ir2Reading;
+            //errorSensors = -errorSensorLeft * 2;
+            errorSensors = -errorSensorLeft;
+            dErrorSensors = errorSensors - prevErrorSensors;
+            outputSensors = (kpSensorL * errorSensors) + (kdSensorL * dErrorSensors);
+            // 			 if(targetAngle - (g_sbu_mm_Motor1EncoderEdgeCount - g_sbu_mm_Motor2EncoderEdgeCount) < -45){
+            // 				outputSensors*=-1;
+            // 			 }
+            prevErrorSensors = errorSensors;
+        }
+         
+        else if ((rightWall == MCI_WALL_FOUND) && (leftWall != MCI_WALL_FOUND))
+        {
+            mhi_ClearD1Led();
+            mhi_ClearD2Led();
+            mhi_SetD3Led();
+            
+            //Read Right one
+            ir3Reading = mhi_ReadIr3();
+             
+            errorSensorRight = MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW - ir3Reading;
+            //errorSensors = errorSensorRight * 2;
+            errorSensors = errorSensorRight;
+            dErrorSensors = errorSensors - prevErrorSensors;
+            outputSensors = (kpSensorR * errorSensors) + (kdSensorR * dErrorSensors);
+            // 			  if(targetAngle - (g_sbu_mm_Motor1EncoderEdgeCount - g_sbu_mm_Motor2EncoderEdgeCount) < 45){
+            // 				  outputSensors*=-1;
+            // 			  }
+            prevErrorSensors = errorSensors;
+        }
         
-//         else {
-//             //sbu_mm_SetLed3();
-//             outputSensors = 0;
-//             prevErrorSensors = 0;
-//         }
+        else 
+        {
+            outputSensors = 0;
+            prevErrorSensors = 0;
+        }
         
         /* calculate error (for proportional term) */
-		mhi_PrintInt(mhi_GetEncoder1EdgeCount());
-		mhi_PrintString(" ");
-		mhi_PrintInt(mhi_GetEncoder2EdgeCount());
-		mhi_PrintString("\r\n");
         error = targetAngle - ((int32_t)mhi_GetEncoder1EdgeCount() - (int32_t)mhi_GetEncoder2EdgeCount());
-//         mhi_PrintString("e: ");
-//         if(error < 0)
-//             mhi_PrintString("-");
-//         mhi_PrintInt((uint32_t)abs(error));
-//         mhi_PrintString("\r\n");
-       // error += outputSensors;
-//         mhi_PrintString("e2: ");
-//         if(error < 0)
-//             mhi_PrintString("-");
-//         mhi_PrintInt((uint32_t)abs(error));
-//         mhi_PrintString("\r\n");
         
         /* calculate difference in error (for the derivative term) */
 		error += outputSensors;
@@ -287,38 +306,14 @@ void mci_MoveForward1MazeSquarePid(void)
         
         /* calculate PID output */
         output = (kp * error) + (kd * dError);
-         mhi_PrintString("o: ");
-         if(output < 0)
-            mhi_PrintString("-");
-         mhi_PrintInt((uint32_t)abs(output));
-         mhi_PrintString(" = ");
-         if(kp < 0)
-             mhi_PrintString("-");
-         mhi_PrintInt((uint32_t)kp);
-         mhi_PrintString(" * ");
-         if(error < 0)
-             mhi_PrintString("-");
-         mhi_PrintInt((uint32_t)abs(error));
-         mhi_PrintString("\r\n");
         
         /* calculate new speeds */
-        newLeftSpeed = sf_constrain(MCI_FORWARD_SLOW_SPEED + output, 255, -255);
-        newRightSpeed = sf_constrain(MCI_FORWARD_SLOW_SPEED - output, 255, -255);
-         mhi_PrintString("l: ");
-         if(newLeftSpeed < 0)
-             mhi_PrintString("-");
-         mhi_PrintInt((uint32_t)abs(newLeftSpeed));
-         mhi_PrintString("\r\n");
-         mhi_PrintString("r: ");
-         if(newRightSpeed < 0)
-             mhi_PrintString("-");
-         mhi_PrintInt((uint32_t)abs(newRightSpeed));
-         mhi_PrintString("\r\n");
-         mhi_PrintString("\r\n");
+        newLeftSpeed = sf_constrain(MCI_MINIMUM_SPEED + output, 255, -255);
+        newRightSpeed = sf_constrain(MCI_MINIMUM_SPEED - output, 255, -255);
         
         
         /* set new motor speeds */
-        if(newLeftSpeed < 0)
+        if (newLeftSpeed < 0)
         {
             mhi_SetWheelMotor1Speed((uint16_t)abs(newLeftSpeed));
             mhi_StartWheelMotor1Backward();
@@ -329,7 +324,7 @@ void mci_MoveForward1MazeSquarePid(void)
             mhi_StartWheelMotor1Forward();
         }
         
-        if(newRightSpeed < 0)
+        if (newRightSpeed < 0)
         {
             mhi_SetWheelMotor2Speed((uint16_t)abs(newRightSpeed));
             mhi_StartWheelMotor2Backward();
@@ -342,10 +337,10 @@ void mci_MoveForward1MazeSquarePid(void)
     }
     
     /* clear encoder edge counts and set motor speeds to 0 */
+    mhi_StopWheelMotor1();
+    mhi_StopWheelMotor2();
     mhi_ClearEncoder1EdgeCount();
-    mhi_ClearEncoder2EdgeCount();
-    mhi_SetWheelMotor1Speed(0);
-    mhi_SetWheelMotor2Speed(0);
+    mhi_ClearEncoder2EdgeCount();    
 }
 
 /**
@@ -356,7 +351,45 @@ void mci_MoveForward1MazeSquarePid(void)
 */
 void mci_TurnRight90Degrees(void)
 {
+    uint32_t rightDone = 0u;
+    uint32_t leftDone = 0u;
     
+    /* reset encoder counts */
+    mhi_ClearEncoder1EdgeCount();
+    mhi_ClearEncoder2EdgeCount();
+    
+    /* set motor directions and speeds */
+    mhi_SetWheelMotor1Speed(MCI_TURN_SPEED);
+    mhi_SetWheelMotor2Speed(MCI_TURN_SPEED);
+    mhi_StartWheelMotor1Forward();
+    mhi_StartWheelMotor2Backward();
+    
+    /* keep moving motors until encoder edge counts are reached */
+    while ((!rightDone) || (!leftDone))
+    {      
+        if ((!rightDone) && (mhi_GetEncoder1EdgeCount() == 
+            MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT))
+        {
+            mhi_StopWheelMotor1();
+            rightDone = 1u;
+        }
+        if ((!leftDone) && (mhi_GetEncoder2EdgeCount() == 
+            (-MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT)))
+        {
+            mhi_StopWheelMotor2();
+            leftDone = 1u;
+        }
+    }
+    
+    /* update wall presences */
+    mci_UpdateWallPresenceRightTurn();
+    
+    
+    /* clear encoder edge counts and set motor speeds to 0 */
+    mhi_StopWheelMotor1();
+    mhi_StopWheelMotor2();
+    mhi_ClearEncoder1EdgeCount();
+    mhi_ClearEncoder2EdgeCount();
 }
 
 /**
@@ -367,7 +400,96 @@ void mci_TurnRight90Degrees(void)
 */
 void mci_TurnLeft90Degrees(void)
 {
+    uint32_t rightDone = 0u;
+    uint32_t leftDone = 0u;
     
+    /* reset encoder counts */
+    mhi_ClearEncoder1EdgeCount();
+    mhi_ClearEncoder2EdgeCount();
+    
+    /* set motor directions and speeds */
+    mhi_SetWheelMotor1Speed(MCI_TURN_SPEED);
+    mhi_SetWheelMotor2Speed(MCI_TURN_SPEED);
+    mhi_StartWheelMotor1Backward();
+    mhi_StartWheelMotor2Forward();
+    
+    /* keep moving motors until encoder edge counts are reached */
+    while ((!rightDone) || (!leftDone))
+    {    
+        if ((!rightDone) && (mhi_GetEncoder1EdgeCount() == (-MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT)))
+        {
+            mhi_StopWheelMotor1();
+            rightDone = 1u;
+        }
+        if ((!leftDone) && (mhi_GetEncoder2EdgeCount() == MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT))
+        {
+            mhi_StopWheelMotor2();
+            leftDone = 1u;
+        }
+    }
+    
+    /* update wall presences */
+    mci_UpdateWallPresenceLeftTurn();
+    
+    /* clear encoder edge counts and set motor speeds to 0 */
+    mhi_StopWheelMotor1();
+    mhi_StopWheelMotor2();
+    mhi_ClearEncoder1EdgeCount();
+    mhi_ClearEncoder2EdgeCount();
+}
+
+/**
+* Adjust mouse to front wall
+*
+* \param None
+* \retval None
+*/
+void mci_AdjustToFrontWall(void)
+{
+    uint32_t ir1Reading = 0u;
+    uint32_t ir4Reading = 0u;
+    
+    /* read both sensors */
+    ir1Reading = mhi_ReadIr1();
+    ir4Reading = mhi_ReadIr4();
+    
+    while (abs(ir1Reading - ir4Reading) > 2)
+    {
+        if (ir1Reading > ir4Reading)
+        {
+            mhi_StartWheelMotor1Backward();
+            mhi_StartWheelMotor2Forward();
+            mhi_SetWheelMotor1Speed(100);
+            mhi_SetWheelMotor2Speed(100);
+            
+            while (ir1Reading >= ir4Reading)
+            {
+                /* read both sensors */
+                ir1Reading = mhi_ReadIr1();
+                ir4Reading = mhi_ReadIr4();
+            }
+        }
+        else if (ir1Reading < ir4Reading)
+        {
+            mhi_StartWheelMotor1Forward();
+            mhi_StartWheelMotor2Backward();
+            mhi_SetWheelMotor1Speed(100);
+            mhi_SetWheelMotor2Speed(100);
+            
+            while (ir1Reading <= ir4Reading)
+            {
+                /* read both sensors */
+                ir1Reading = mhi_ReadIr1();
+                ir4Reading = mhi_ReadIr4();
+            }
+        }
+    }
+    
+    /* clear encoder edge counts and set motor speeds to 0 */
+    mhi_ClearEncoder1EdgeCount();
+    mhi_ClearEncoder2EdgeCount();
+    mhi_SetWheelMotor1Speed(0);
+    mhi_SetWheelMotor2Speed(0);
 }
 
 /*----------------------------------------------------------------------------*/

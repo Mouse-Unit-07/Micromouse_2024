@@ -186,8 +186,8 @@ void mhi_StopWheelMotor1(void)
     mhi_SetWheelMotor1Speed(0u);
     wheelMotor1Direction = MHI_WHEEL_MOTOR_DIRECTION_STOP;
     ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_STANDBY_PIN, IO_PIN_HIGH);
-    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_1_IN1_PIN, IO_PIN_LOW);
-    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_1_IN2_PIN, IO_PIN_LOW);
+    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_1_IN1_PIN, IO_PIN_HIGH);
+    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_1_IN2_PIN, IO_PIN_HIGH);
 }
 
 /**
@@ -264,8 +264,8 @@ void mhi_StopWheelMotor2(void)
     mhi_SetWheelMotor2Speed(0u);
     wheelMotor2Direction = MHI_WHEEL_MOTOR_DIRECTION_STOP;
     ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_STANDBY_PIN, IO_PIN_HIGH);
-    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_2_IN1_PIN, IO_PIN_LOW);
-    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_2_IN2_PIN, IO_PIN_LOW);
+    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_2_IN1_PIN, IO_PIN_HIGH);
+    ioInterface->io_WriteOutput(0u, MHI_WHEEL_MOTOR_2_IN2_PIN, IO_PIN_HIGH);
 }
 
 /**

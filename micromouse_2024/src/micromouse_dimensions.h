@@ -22,8 +22,8 @@
 #define MCI_MAZE_PILLAR_WIDTH_MM                (12)
 /* IR sensor reading tolerances */
 #define MCI_FRONT_SENSOR_READING_TOLERANCE      (10)
-#define MCI_LEFT_SENSOR_READING_TOLERANCE       (10)
-#define MCI_RIGHT_SENSOR_READING_TOLERANCE      (10)
+#define MCI_LEFT_SENSOR_READING_TOLERANCE       (70)
+#define MCI_RIGHT_SENSOR_READING_TOLERANCE      (70)
 
 /* DO NOT CHANGE BELOW:*/
 /* mouse size from top of mouse to bottom of mouse */

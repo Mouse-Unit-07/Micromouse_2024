@@ -39,15 +39,15 @@
 /*                              Global Variables                              */
 /*----------------------------------------------------------------------------*/
 static mci_wall_presence_t frontWallPresence = MCI_WALL_NOT_FOUND;
-static mci_wall_presence_t leftWallPresence = MCI_WALL_NOT_FOUND;
-static mci_wall_presence_t rightWallPresence = MCI_WALL_NOT_FOUND;
+static mci_wall_presence_t leftWallPresence = MCI_CANNOT_READ_WALL;
+static mci_wall_presence_t rightWallPresence = MCI_CANNOT_READ_WALL;
 
-static mci_wall_check_availability_t frontWallCheckAvailable 
-    = MCI_WALL_CHECK_NOT_AVAILABLE;
-static mci_wall_check_availability_t leftWallCheckAvailable 
-    = MCI_WALL_CHECK_NOT_AVAILABLE;
-static mci_wall_check_availability_t rightWallCheckAvailable 
-    = MCI_WALL_CHECK_NOT_AVAILABLE;
+static mci_wall_update_availability_t frontWallUpdateAvailable 
+    = MCI_WALL_UPDATE_AVAILABLE;
+static mci_wall_update_availability_t leftWallUpdateAvailable 
+    = MCI_WALL_UPDATE_NOT_AVAILABLE;
+static mci_wall_update_availability_t rightWallUpdateAvailable 
+    = MCI_WALL_UPDATE_NOT_AVAILABLE;
 
 /*----------------------------------------------------------------------------*/
 /*                    Private (Static) Function Prototype                     */
@@ -100,12 +100,12 @@ void mci_PrintWallSensorReadings(void)
 */
 void mci_PrintWallPresence(void)
 {
-    mci_SetFrontWallCheckAvailable();
-    mci_SetLeftWallCheckAvailable();
-    mci_SetRightWallCheckAvailable();
-    mci_UpdateFrontWallPresence();
-    mci_UpdateLeftWallPresence();
-    mci_UpdateRightWallPresence();
+//     mci_SetFrontWallUpdateAvailable();
+//     mci_SetLeftWallUpdateAvailable();
+//     mci_SetRightWallUpdateAvailable();
+//     mci_UpdateFrontWallPresence();
+//     mci_UpdateLeftWallPresence();
+//     mci_UpdateRightWallPresence();
     
     /* check front */
     if (mci_CheckFrontWall() == MCI_WALL_FOUND)
@@ -161,62 +161,14 @@ void mci_PrintWallPresence(void)
 }
 
 /**
-* Check for front wall presence
-*
-* \param None
-* \retval MCI_CANNOT_READ_WALL Front wall variable is outdated
-* \retval MCI_WALL_NOT_FOUND There is no front wall
-* \retval MCI_WALL_FOUND There is a front wall
-*/
-mci_wall_presence_t mci_CheckFrontWall(void)
-{
-    if (frontWallCheckAvailable == MCI_WALL_CHECK_AVAILABLE)
-        return frontWallPresence;
-    else
-        return MCI_CANNOT_READ_WALL;
-}
-
-/**
-* Check for left wall presence
-*
-* \param None
-* \retval MCI_CANNOT_READ_WALL Left wall variable is outdated
-* \retval MCI_WALL_NOT_FOUND There is no left wall
-* \retval MCI_WALL_FOUND There is a left wall
-*/
-mci_wall_presence_t mci_CheckLeftWall(void)
-{
-    if (leftWallCheckAvailable == MCI_WALL_CHECK_AVAILABLE)
-        return leftWallPresence;
-    else
-        return MCI_CANNOT_READ_WALL;
-}
-
-/**
-* Check for right wall presence
-*
-* \param None
-* \retval MCI_CANNOT_READ_WALL Right wall variable is outdated
-* \retval MCI_WALL_NOT_FOUND There is no right wall
-* \retval MCI_WALL_FOUND There is a right wall
-*/
-mci_wall_presence_t mci_CheckRightWall(void)
-{
-    if (rightWallCheckAvailable == MCI_WALL_CHECK_AVAILABLE)
-        return rightWallPresence;
-    else
-        return MCI_CANNOT_READ_WALL;
-}
-
-/**
 * Prevent checks for whether front wall is present
 *
 * \param None
 * \retval None
 */
-void mci_SetFrontWallCheckUnavailable(void)
+void mci_SetFrontWallUpdateUnavailable(void)
 {
-    frontWallCheckAvailable = MCI_WALL_CHECK_NOT_AVAILABLE;
+    frontWallUpdateAvailable = MCI_WALL_UPDATE_NOT_AVAILABLE;
 }
 
 /**
@@ -225,9 +177,9 @@ void mci_SetFrontWallCheckUnavailable(void)
 * \param None
 * \retval None
 */
-void mci_SetLeftWallCheckUnavailable(void)
+void mci_SetLeftWallUpdateUnavailable(void)
 {
-    leftWallCheckAvailable = MCI_WALL_CHECK_NOT_AVAILABLE;
+    leftWallUpdateAvailable = MCI_WALL_UPDATE_NOT_AVAILABLE;
 }
 
 /**
@@ -236,9 +188,9 @@ void mci_SetLeftWallCheckUnavailable(void)
 * \param None
 * \retval None
 */
-void mci_SetRightWallCheckUnavailable(void)
+void mci_SetRightWallUpdateUnavailable(void)
 {
-    rightWallCheckAvailable = MCI_WALL_CHECK_NOT_AVAILABLE;
+    rightWallUpdateAvailable = MCI_WALL_UPDATE_NOT_AVAILABLE;
 }
 
 /**
@@ -247,9 +199,9 @@ void mci_SetRightWallCheckUnavailable(void)
 * \param None
 * \retval None
 */
-void mci_SetFrontWallCheckAvailable(void)
+void mci_SetFrontWallUpdateAvailable(void)
 {
-    frontWallCheckAvailable = MCI_WALL_CHECK_AVAILABLE;
+    frontWallUpdateAvailable = MCI_WALL_UPDATE_AVAILABLE;
 }
 
 /**
@@ -258,9 +210,9 @@ void mci_SetFrontWallCheckAvailable(void)
 * \param None
 * \retval None
 */
-void mci_SetLeftWallCheckAvailable(void)
+void mci_SetLeftWallUpdateAvailable(void)
 {
-    leftWallCheckAvailable = MCI_WALL_CHECK_AVAILABLE;
+    leftWallUpdateAvailable = MCI_WALL_UPDATE_AVAILABLE;
 }
 
 /**
@@ -269,9 +221,21 @@ void mci_SetLeftWallCheckAvailable(void)
 * \param None
 * \retval None
 */
-void mci_SetRightWallCheckAvailable(void)
+void mci_SetRightWallUpdateAvailable(void)
 {
-    rightWallCheckAvailable = MCI_WALL_CHECK_AVAILABLE;
+    rightWallUpdateAvailable = MCI_WALL_UPDATE_AVAILABLE;
+}
+
+/**
+* Reset left and right wall presence to cannot read wall
+*
+* \param None
+* \retval None
+*/
+void mci_ClearLeftRightWallPresence(void)
+{
+    leftWallPresence = MCI_CANNOT_READ_WALL;
+    rightWallPresence = MCI_CANNOT_READ_WALL;
 }
 
 /**
@@ -288,16 +252,18 @@ void mci_UpdateFrontWallPresence(void)
     /* read front IR sensors */
     reading1 = mhi_ReadIr1();
     reading2 = mhi_ReadIr4();
-        
-    /* update front wall presence variable */
-    if ((reading1 >= MCI_FRONT_SENSOR_READING_THRESHOLD_RAW) && 
-         (reading2 >= MCI_FRONT_SENSOR_READING_THRESHOLD_RAW))
+    
+    /* update front wall presence variable if available */
+    if (frontWallUpdateAvailable == MCI_WALL_UPDATE_AVAILABLE)
     {
-        frontWallPresence = MCI_WALL_FOUND;
-    }
-    else 
-    {
-        frontWallPresence = MCI_WALL_NOT_FOUND;
+        if (((reading1 + reading2) / 2) >= MCI_FRONT_SENSOR_READING_THRESHOLD_RAW)
+        {
+            frontWallPresence = MCI_WALL_FOUND;
+        }
+        else
+        {
+            frontWallPresence = MCI_WALL_NOT_FOUND;
+        }
     }
 }
 
@@ -314,14 +280,17 @@ void mci_UpdateLeftWallPresence(void)
     /* read left IR sensor */
     reading = mhi_ReadIr2();
     
-    /* update front wall presence variable */
-    if (reading >= MCI_LEFT_SENSOR_READING_THRESHOLD_RAW)        
+    /* update front wall presence variable if available */
+    if (leftWallUpdateAvailable == MCI_WALL_UPDATE_AVAILABLE)
     {
-        leftWallPresence = MCI_WALL_FOUND;
-    }
-    else
-    {
-        leftWallPresence = MCI_WALL_NOT_FOUND;
+        if (reading >= MCI_LEFT_SENSOR_READING_THRESHOLD_RAW)
+        {
+            leftWallPresence = MCI_WALL_FOUND;
+        }
+        else
+        {
+            leftWallPresence = MCI_WALL_NOT_FOUND;
+        }
     }
 }
 
@@ -338,15 +307,86 @@ void mci_UpdateRightWallPresence(void)
     /* read left IR sensor */
     reading = mhi_ReadIr3();
     
-    /* update front wall presence variable */
-    if (reading >= MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW)
+    /* update front wall presence variable if available */
+    if (rightWallUpdateAvailable == MCI_WALL_UPDATE_AVAILABLE)
     {
-        rightWallPresence = MCI_WALL_FOUND;
+        if (reading >= MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW)
+        {
+            rightWallPresence = MCI_WALL_FOUND;
+        }
+        else
+        {
+            rightWallPresence = MCI_WALL_NOT_FOUND;
+        }
     }
-    else
-    {
-        rightWallPresence = MCI_WALL_NOT_FOUND;
-    }
+}
+
+/**
+* Update wall presences for right turn
+*
+* \param None
+* \retval None
+*/
+void mci_UpdateWallPresenceRightTurn(void)
+{
+    leftWallPresence = frontWallPresence;
+    frontWallPresence = rightWallPresence;
+    rightWallPresence = MCI_CANNOT_READ_WALL;
+}
+
+/**
+* Update wall presences for left turn
+*
+* \param None
+* \retval None
+*/
+void mci_UpdateWallPresenceLeftTurn(void)
+{
+    rightWallPresence = frontWallPresence;
+    frontWallPresence = leftWallPresence;
+    leftWallPresence = MCI_CANNOT_READ_WALL;
+}
+
+/**
+* Check for front wall presence
+*
+* \param None
+* \retval MCI_CANNOT_READ_WALL Front wall variable is outdated
+* \retval MCI_WALL_NOT_FOUND There is no front wall
+* \retval MCI_WALL_FOUND There is a front wall
+*/
+mci_wall_presence_t mci_CheckFrontWall(void)
+{
+    mci_UpdateFrontWallPresence();    
+    return frontWallPresence;
+}
+
+/**
+* Check for left wall presence
+*
+* \param None
+* \retval MCI_CANNOT_READ_WALL Left wall variable is outdated
+* \retval MCI_WALL_NOT_FOUND There is no left wall
+* \retval MCI_WALL_FOUND There is a left wall
+*/
+mci_wall_presence_t mci_CheckLeftWall(void)
+{
+    mci_UpdateLeftWallPresence();
+    return leftWallPresence;
+}
+
+/**
+* Check for right wall presence
+*
+* \param None
+* \retval MCI_CANNOT_READ_WALL Right wall variable is outdated
+* \retval MCI_WALL_NOT_FOUND There is no right wall
+* \retval MCI_WALL_FOUND There is a right wall
+*/
+mci_wall_presence_t mci_CheckRightWall(void)
+{
+    mci_UpdateRightWallPresence();
+    return rightWallPresence;
 }
 
 /*----------------------------------------------------------------------------*/

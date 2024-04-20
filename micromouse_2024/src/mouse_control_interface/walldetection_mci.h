@@ -27,9 +27,9 @@ typedef enum
 
 typedef enum
 {
-    MCI_WALL_CHECK_NOT_AVAILABLE = 0u,
-    MCI_WALL_CHECK_AVAILABLE
-} mci_wall_check_availability_t;
+    MCI_WALL_UPDATE_NOT_AVAILABLE = 0u,
+    MCI_WALL_UPDATE_AVAILABLE
+} mci_wall_update_availability_t;
 
 #define MCI_COS45DEG    (0.707f)    /* cosine of 45 degrees to reduce math */
 
@@ -59,8 +59,11 @@ typedef enum
 #define MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW_165MM_WALLS_HARD_CODED    (33)
 
 #define MCI_FRONT_SENSOR_READING_THRESHOLD_RAW_180MM_WALLS_HARD_CODED    (128)
-#define MCI_LEFT_SENSOR_READING_THRESHOLD_RAW_180MM_WALLS_HARD_CODED     (21)
-#define MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW_180MM_WALLS_HARD_CODED    (21)
+#define MCI_LEFT_SENSOR_READING_THRESHOLD_RAW_180MM_WALLS_HARD_CODED     (81)
+#define MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW_180MM_WALLS_HARD_CODED    (81)
+
+/* hard coded values for 30mm to detect front wall too close */
+#define MCI_FRONT_WALL_TOO_CLOSE_THRESHOLD_RAW_30MM_HARD_CODED           (200)
 
 /* front sensor threshold raw value */
 #define MCI_FRONT_SENSOR_READING_THRESHOLD_RAW \
@@ -88,19 +91,23 @@ typedef enum
 void mci_PrintWallSensorReadings(void);
 void mci_PrintWallPresence(void);
 
-mci_wall_presence_t mci_CheckFrontWall(void);
-mci_wall_presence_t mci_CheckLeftWall(void);
-mci_wall_presence_t mci_CheckRightWall(void);
-
-void mci_SetFrontWallCheckUnavailable(void);
-void mci_SetLeftWallCheckUnavailable(void);
-void mci_SetRightWallCheckUnavailable(void);
-void mci_SetFrontWallCheckAvailable(void);
-void mci_SetLeftWallCheckAvailable(void);
-void mci_SetRightWallCheckAvailable(void);
+void mci_SetFrontWallUpdateUnavailable(void);
+void mci_SetLeftWallUpdateUnavailable(void);
+void mci_SetRightWallUpdateUnavailable(void);
+void mci_SetFrontWallUpdateAvailable(void);
+void mci_SetLeftWallUpdateAvailable(void);
+void mci_SetRightWallUpdateAvailable(void);
+void mci_ClearLeftRightWallPresence(void);
 
 void mci_UpdateFrontWallPresence(void);
 void mci_UpdateLeftWallPresence(void);
 void mci_UpdateRightWallPresence(void);
+
+void mci_UpdateWallPresenceRightTurn(void);
+void mci_UpdateWallPresenceLeftTurn(void);
+
+mci_wall_presence_t mci_CheckFrontWall(void);
+mci_wall_presence_t mci_CheckLeftWall(void);
+mci_wall_presence_t mci_CheckRightWall(void);
 
 #endif /* WALLDETECTION_MCI_H_ */
