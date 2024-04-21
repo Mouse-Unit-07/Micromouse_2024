@@ -1,8 +1,8 @@
 #include <asf.h>
 #include "algo.h"
 #include "mouse_hardware_interface/usart_mhi.h"
-#include "mouse_control_interface/movement_mci.h"
 #include "mouse_control_interface/walldetection_mci.h"
+#include "mouse_control_interface/movement_mci.h"
 #include "mouse_hardware_interface/clock_mhi.h"
 
 MazeCell     mazeDiscovered [MAZE_LENGTH * MAZE_LENGTH] = {{FALSE, FALSE, FALSE, FALSE}};
