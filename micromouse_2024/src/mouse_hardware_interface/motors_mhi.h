@@ -1,6 +1,6 @@
 /*-------------------------------- FILE INFO -----------------------------------
 * Filename        : motors_mhi.h
-* Author          : Ryuichi Lin
+* Author          : Team Kirbo
 * Revision        : 1.0
 * Updated         : 2024-04-07
 * Purpose         : mouse hardware interface layer

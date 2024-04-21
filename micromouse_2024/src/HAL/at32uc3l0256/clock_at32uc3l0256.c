@@ -1,6 +1,6 @@
 /*-------------------------------- FILE INFO -----------------------------------
 * Filename        : clock_at32uc3l0256.c
-* Author          : Ryuichi Lin
+* Author          : Team Kirbo
 * Revision        : 1.0
 * Updated         : 2024-03-31
 * Purpose         : hardware specific layer

@@ -1,6 +1,6 @@
 /*-------------------------------- FILE INFO -----------------------------------
 * Filename        : micromouse_dimensions.h
-* Author          : Ryuichi Lin
+* Author          : Team Kirbo
 * Revision        : 1.0
 * Updated         : 2024-04-13
 * Purpose         : micromouse maze and bot dimensions

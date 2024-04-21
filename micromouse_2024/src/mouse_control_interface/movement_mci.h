@@ -1,6 +1,6 @@
 /*-------------------------------- FILE INFO -----------------------------------
 * Filename        : movement_mci.h
-* Author          : Ryuichi Lin
+* Author          : Team Kirbo
 * Revision        : 1.0
 * Updated         : 2024-04-13
 * Purpose         : mouse control interface layer
@@ -67,5 +67,8 @@ void mci_MoveForward1MazeSquarePid(void);
 void mci_TurnRight90Degrees(void);
 void mci_TurnLeft90Degrees(void);
 void mci_AdjustToFrontWall(void);
+
+mci_wall_presence_t mci_CheckLeftWallMoveForwardPid(void);
+mci_wall_presence_t mci_CheckRightWallMoveForwardPid(void);
 
 #endif /* MOVEMENT_MCI_H_ */
