@@ -90,6 +90,7 @@ void mhi_CheckLowBattery(void)
         if (pinState == IO_PIN_LOW)
         {
             mhi_IndicateError(MHI_LEDS_LOW_BATTERY_ERROR);
+            mhi_DisableRegulators();
         }
     }
 }
