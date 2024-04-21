@@ -63,7 +63,7 @@ typedef enum
 #define MCI_RIGHT_SENSOR_READING_THRESHOLD_RAW_180MM_WALLS_HARD_CODED    (81)
 
 /* hard coded values for 30mm to detect front wall too close */
-#define MCI_FRONT_WALL_TOO_CLOSE_THRESHOLD_RAW_30MM_HARD_CODED           (200)
+#define MCI_FRONT_WALL_TOO_CLOSE_THRESHOLD_RAW_30MM_HARD_CODED           (160)
 
 /* front sensor threshold raw value */
 #define MCI_FRONT_SENSOR_READING_THRESHOLD_RAW \
