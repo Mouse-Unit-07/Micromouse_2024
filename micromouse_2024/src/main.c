@@ -16,19 +16,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "mouse_hardware_interface/leds_mhi.h"
-#include "mouse_hardware_interface/clock_mhi.h"
-#include "mouse_hardware_interface/timer_mhi.h"
-#include "mouse_hardware_interface/interrupts_mhi.h"
-#include "mouse_hardware_interface/usart_mhi.h"
 #include "mouse_hardware_interface/power_mhi.h"
-#include "mouse_hardware_interface/irsensors_mhi.h"
-#include "mouse_hardware_interface/motors_mhi.h"
 
 #include "mouse_control_interface/init_mci.h"
 #include "mouse_control_interface/walldetection_mci.h"
 #include "mouse_control_interface/movement_mci.h"
-
-#include "algo/algo.h"
+#include "mouse_control_interface/configswitch_mci.h"
+#include "mouse_control_interface/time_mci.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                Definitions                                 */
@@ -71,11 +65,7 @@ int main (void)
 {   
     /* initialize mouse */
     mci_InitializeMouse();
-    
-    uint32_t oldEdgeCount = mhi_GetConfigPinEdgeCount();
-    uint32_t newEdgeCount = mhi_GetConfigPinEdgeCount();
-    mhi_DelayMs(3000);
-    
+        
     /* infinite while loop */
     while(1)
     {
