@@ -342,6 +342,18 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src\algo\algo.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\algo\algo.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\algo\wallfollower_algo.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\algo\wallfollower_algo.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\ASF\avr32\drivers\adcifb\adcifb.c">
       <SubType>compile</SubType>
     </Compile>
@@ -456,6 +468,12 @@
     <Compile Include="src\micromouse_dimensions.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\mouse_control_interface\configswitch_mci.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\mouse_control_interface\configswitch_mci.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\mouse_control_interface\init_mci.c">
       <SubType>compile</SubType>
     </Compile>
@@ -466,6 +484,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\mouse_control_interface\movement_mci.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\mouse_control_interface\time_mci.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\mouse_control_interface\time_mci.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\mouse_control_interface\walldetection_mci.c">
@@ -745,6 +769,7 @@
     <Folder Include="src\HAL\at32uc3l0256" />
     <Folder Include="src\mouse_hardware_interface" />
     <Folder Include="src\mouse_control_interface" />
+    <Folder Include="src\algo" />
     <Folder Include="src\shared_functions" />
   </ItemGroup>
   <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\Compiler.targets" />
