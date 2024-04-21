@@ -60,12 +60,13 @@ void algo_LeftWallFollow()
         
     if (mci_CheckLeftWall() == MCI_WALL_NOT_FOUND)
     {
-        mci_TurnLeft90Degrees();
+        mci_TurnLeft90DegreesPID();
         mhi_DelayMs(100);
     }
     while (mci_CheckFrontWall() != MCI_WALL_NOT_FOUND)
     {
-        mci_TurnRight90Degrees();
+		mci_AdjustToFrontWall();
+        mci_TurnRight90DegreesPID();
         mhi_DelayMs(100);
     }
 }
@@ -83,12 +84,13 @@ void algo_RightWallFollow()
     
     if (mci_CheckRightWall() == MCI_WALL_NOT_FOUND)
     {
-        mci_TurnRight90Degrees();
+        mci_TurnRight90DegreesPID();
         mhi_DelayMs(100);
     }
     while (mci_CheckFrontWall() != MCI_WALL_NOT_FOUND)
     {
-        mci_TurnLeft90Degrees();
+		mci_AdjustToFrontWall();
+        mci_TurnLeft90DegreesPID();
         mhi_DelayMs(100);
     }
 }

@@ -239,23 +239,23 @@ void moveForward(void)
 
 void moveBack(void)
 {
-	mci_TurnRight90Degrees();
+	mci_TurnRight90DegreesPID();
 	mhi_DelayMs(100);
-	mci_TurnRight90Degrees();
+	mci_TurnRight90DegreesPID();
 	mhi_DelayMs(100);
 	moveForward();
 }
 
 void moveLeft(void)
 {
-	mci_TurnLeft90Degrees();
+	mci_TurnLeft90DegreesPID();
 	mhi_DelayMs(100);
 	moveForward();
 }
 
 void moveRight(void)
 {
-	mci_TurnRight90Degrees();
+	mci_TurnRight90DegreesPID();
 	mhi_DelayMs(100);
 	moveForward();
 }

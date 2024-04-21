@@ -43,6 +43,7 @@
 */
 #define MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE       (75)
 
+#define MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQR_CONTINOUS (89)
 /* c = pi*d; pi*100mm = 295.3mm */
 /* (edges/rev)/(wheel circumference) = edges/mm; (edges/mm)*(c/4) = */
 /* edges/90deg turn; (52/103mm)*(295.3mm/4) = 37 edges/maze square */
@@ -52,7 +53,13 @@
 * Value found experimentally for left turn: 32
 */
 #define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT    (32)
+#define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT_PID    (33)
 #define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT     (32)
+#define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT_PID    (33)
+/* Value found by halving the encoder count 90 degree turn*/
+#define  MCI_WHEEL_MOTOR_EDGES_PER_45_DEGREE_TURN_RIGHT (MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT/2)
+#define  MCI_WHEEL_MOTOR_EDGES_PER_45_DEGREE_TURN_LEFT (MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT/2)
+
 
 /*----------------------------------------------------------------------------*/
 /*                              Global Variables                              */
@@ -67,6 +74,14 @@ void mci_MoveForward1MazeSquarePid(void);
 void mci_TurnRight90Degrees(void);
 void mci_TurnLeft90Degrees(void);
 void mci_AdjustToFrontWall(void);
+void mci_TurnRight45Degrees(void);
+void mci_TurnLeft45Degrees(void);
+void mci_MoveCentertoCenterPid(void);
+void mci_MoveForwardNSquares(int n);
+void mci_TurnRight90DegreesPID(void);
+void mci_TurnLeft90DegreesPID(void);
+void mci_MoveDiagonalLeft(void); 
+void mci_MoveDiagonalRight(void);
 
 mci_wall_presence_t mci_CheckLeftWallMoveForwardPid(void);
 mci_wall_presence_t mci_CheckRightWallMoveForwardPid(void);
