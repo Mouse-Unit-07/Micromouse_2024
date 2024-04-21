@@ -28,6 +28,8 @@
 #include "mouse_control_interface/walldetection_mci.h"
 #include "mouse_control_interface/movement_mci.h"
 
+#include "algo/algo.h"
+
 /*----------------------------------------------------------------------------*/
 /*                                Definitions                                 */
 /*----------------------------------------------------------------------------*/
@@ -79,20 +81,7 @@ int main (void)
     {
         mhi_CheckLowBattery();
         
-        /* right wall follower */
-        mci_MoveForward1MazeSquarePid();
-        mhi_DelayMs(80);
-        
-        if (mci_CheckLeftWall() == MCI_WALL_NOT_FOUND)
-        {
-            mci_TurnLeft90Degrees();
-            mhi_DelayMs(100);
-        }
-        while (mci_CheckFrontWall() != MCI_WALL_NOT_FOUND)
-        {
-            mci_TurnRight90Degrees();
-            mhi_DelayMs(100);
-        }
+		traverseCell();
     }
 }
 
