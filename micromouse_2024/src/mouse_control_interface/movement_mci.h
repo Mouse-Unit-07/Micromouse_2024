@@ -53,8 +53,9 @@
 * Value found experimentally for left turn: 32
 */
 #define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT    (32)
+#define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT_PID    (33)
 #define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT     (32)
-
+#define MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT_PID    (33)
 /* Value found by halving the encoder count 90 degree turn*/
 #define  MCI_WHEEL_MOTOR_EDGES_PER_45_DEGREE_TURN_RIGHT (MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_RIGHT/2)
 #define  MCI_WHEEL_MOTOR_EDGES_PER_45_DEGREE_TURN_LEFT (MCI_WHEEL_MOTOR_EDGES_PER_90_DEGREE_TURN_LEFT/2)
@@ -77,13 +78,8 @@ void mci_TurnRight45Degrees(void);
 void mci_TurnLeft45Degrees(void);
 void mci_MoveCentertoCenterPid(void);
 void mci_MoveForwardNSquares(int n);
-/* In these functions maybe check for state of the mouse ?: 
-	regular move_forward into another move_forward,
-	diagonal motion into a move forward,
-	diagonal motion into another diagonal,
-	diagonal motion into another diagonal v turn,
-	//Check if the next movement in the path is a diagonal if not then reset mouse to center of next square otherwise hit the middle of the next intersection
-*/
+void mci_TurnRight90DegreesPID(void);
+void mci_TurnLeft90DegreesPID(void);
 void mci_MoveDiagonalLeft(void); 
 void mci_MoveDiagonalRight(void);
 
