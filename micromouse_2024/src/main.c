@@ -71,7 +71,7 @@ int main (void)
     {
 	    //mhi_CheckLowBattery();
 	    
-	    traverseCell();
+	    algoIterate();
 	    if(mci_CheckFrontWall()){
 		    mci_AdjustToFrontWall();
 	    }

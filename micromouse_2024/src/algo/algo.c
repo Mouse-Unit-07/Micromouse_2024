@@ -67,34 +67,111 @@ bool checkNorthWall(void);
 bool checkSouthWall(void);
 bool checkEastWall(void);
 bool checkWestWall(void);
-
 bool checkFrontWall(void);
 bool checkBackWall(void);
 bool checkLeftWall(void);
 bool checkRightWall(void);
 
-void traverseCell()
+/* State machine */
+typedef struct{
+	MouseState curState;
+	MouseState nextState;
+	void (*func)(void);
+}StateTransition;
+
+MouseState firstTraversal();
+MouseState backToStart();
+MouseState runToGoal();
+MouseState finished();
+void beginBacktrack(void);
+void beginRunToGoal(void);
+StateTransition* getTransition(MouseState curState, MouseState nextState);
+
+MouseState (*stateFuncs[])(void) = {
+	firstTraversal,
+	backToStart,
+	runToGoal,
+	finished
+};
+
+StateTransition stateTransitions[] = {
+	{FIRST_TRAVERSAL, FIRST_TRAVERSAL, NULL},
+	{FIRST_TRAVERSAL, BACK_TO_START, beginBacktrack},
+	{BACK_TO_START, BACK_TO_START, NULL},
+	{BACK_TO_START, RUN_TO_GOAL, beginRunToGoal},
+	{RUN_TO_GOAL, RUN_TO_GOAL, NULL},
+	{RUN_TO_GOAL, FINISHED, NULL},
+	{FINISHED, FINISHED, NULL}
+};
+
+/* Function definitions */
+void algoIterate()
 {
-	switch(state)
+	MouseState nextState = stateFuncs[state]();
+	
+	StateTransition* transition = getTransition(state, nextState);
+	
+	if(transition == NULL)
 	{
-		case FIRST_TRAVERSAL:
-			if(searchCell(centerPoints, numCenterPoints))
-				state = BACK_TO_START;
-			break;
-			
-		case BACK_TO_START:
-			if(runCell(&startPoint, 1))
-				state = RUN_TO_GOAL;
-			break;
-			
-		case RUN_TO_GOAL:
-			if(runCell(centerPoints, numCenterPoints))
-				state = FINISHED;
-			break;
-			
-		default:
-			break;
+		//printf("ERROR: Invalid state transition!!!");
+		state = FINISHED;
+		return;
 	}
+	
+	if(transition->func != NULL)
+		transition->func();
+	
+	state = nextState;
+}
+
+MouseState firstTraversal()
+{
+	if(searchCell(centerPoints, numCenterPoints))
+		return BACK_TO_START;
+		
+	return FIRST_TRAVERSAL;
+}
+
+MouseState backToStart()
+{
+	if(runCell(&startPoint, 1))
+		return RUN_TO_GOAL;
+		
+	return BACK_TO_START;
+}
+
+MouseState runToGoal()
+{
+	if(runCell(&centerPoints, numCenterPoints))
+		return FINISHED;
+		
+	return RUN_TO_GOAL;
+}
+
+MouseState finished()
+{
+	return FINISHED;
+}
+
+void beginBacktrack(void)
+{
+	floodFill(&startPoint, 1, FALSE);
+}
+
+void beginRunToGoal(void)
+{
+	floodFill(centerPoints, numCenterPoints, FALSE);
+}
+
+StateTransition* getTransition(MouseState curState, MouseState nextState)
+{
+	unsigned int numTransitions = sizeof(stateTransitions) / sizeof(StateTransition);
+	
+	for(int i = 0; i < numTransitions; i++)
+		if(stateTransitions[i].curState == curState && stateTransitions[i].nextState == nextState)
+			return &stateTransitions[i];
+	
+	return NULL;
 }
 
 bool searchCell(Point goalPoints[], unsigned int numGoalPoints)
@@ -180,17 +257,10 @@ bool searchCell(Point goalPoints[], unsigned int numGoalPoints)
 
 bool runCell(Point goalPoints[], unsigned int numGoalPoints)
 {
-	static bool firstItr = TRUE;
 	MazeCell thisCell;
 
 	if (containsPoint(goalPoints, numGoalPoints, curPoint))
 		return TRUE;
-
-	if (firstItr)
-	{
-		floodFill(goalPoints, numGoalPoints, FALSE);
-		firstItr = FALSE;
-	}
 
 	thisCell = mazeDiscovered[mazeIdx(curPoint)];
 
@@ -236,10 +306,7 @@ bool runCell(Point goalPoints[], unsigned int numGoalPoints)
 	move(nextDir);
 
 	if (containsPoint(goalPoints, numGoalPoints, curPoint))
-	{
-		firstItr = TRUE;
 		return TRUE;
-	}
 
 	return FALSE;
 }

@@ -9,7 +9,7 @@
 /* Typedefs */
 typedef enum
 {
-	FIRST_TRAVERSAL,
+	FIRST_TRAVERSAL = 0,
 	BACK_TO_START,
 	RUN_TO_GOAL,
 	FINISHED
@@ -37,4 +37,4 @@ typedef struct
 	bool westWall;
 } MazeCell;
 
-void traverseCell();
+void algoIterate();
