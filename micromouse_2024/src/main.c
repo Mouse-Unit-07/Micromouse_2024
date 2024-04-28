@@ -67,11 +67,49 @@ int main (void)
     mci_InitializeMouse();
         
     /* infinite while loop */
-    while(1)
-    {
-        mhi_CheckLowBattery();
-        
-		traverseCell();
-    }
+	
+	mhi_DelayMs(2000);
+	mci_MoveForwardNSquares(4);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(2000);
+
+/* 	mci_MoveForwardHalfMazeSquarePid();*/
+// 	mci_MoveForward1MazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_TurnRight45Degrees();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_TurnRight90Degrees();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_TurnLeft90Degrees();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_TurnRight90Degrees();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+// 	mhi_DelayMs(1000);
+// 	mci_TurnRight45Degrees();
+// 	mhi_DelayMs(1000);
+// 	mci_MoveForwardHalfMazeSquarePid();
+//     while(1)
+//     {
+//         mhi_CheckLowBattery();
+//         
+// 		traverseCell();
+// // 		if(mci_CheckFrontWall()){
+// // 			mci_AdjustToFrontWall();
+// // 		}
+// 		
+//     }
 }
 
