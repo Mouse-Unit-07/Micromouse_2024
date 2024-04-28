@@ -717,6 +717,8 @@ void mci_TurnLeft45Degrees(void){
 	mhi_ClearEncoder2EdgeCount();
 	
 }
+
+//TODO work in progress for diagonal movement
 void mci_MoveCentertoCenterPid(void){
 	/* initialize encoder PID constants (integral term not needed) */
 	float kp = 2;      /* proportional term */
@@ -736,7 +738,7 @@ void mci_MoveCentertoCenterPid(void){
 	    
 	/* other encoder PID variables */
 	int32_t initialPosition = mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount();
-	int32_t targetPosition = initialPosition + (73*2);
+	int32_t targetPosition = initialPosition + (112*2);
 	int32_t targetAngle = 0;
 	int32_t prevError = 0;
 	float error = 0;
@@ -773,7 +775,7 @@ void mci_MoveCentertoCenterPid(void){
 	mhi_StartWheelMotor1Forward();
 	mhi_StartWheelMotor2Forward();
 	    
-	/* allow wall updates on start */
+	/*regular moveforward allow wall updates on start dont think this is needed for this function*/
 // 	mci_SetLeftWallUpdateAvailable();
 // 	mci_SetRightWallUpdateAvailable();
 	    
@@ -878,6 +880,7 @@ void mci_MoveCentertoCenterPid(void){
 	mhi_ClearEncoder2EdgeCount();
 }
 
+//TODO work in progress test in a long straight + deaccelerate on last square
 void mci_MoveForwardNSquares(int n){
 	/* initialize encoder PID constants (integral term not needed) */
 	float kp = 2;      /* proportional term */
@@ -947,25 +950,8 @@ void mci_MoveForwardNSquares(int n){
 	
 	/* main control loop */
 	while ((mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount()) < targetPosition)
-	{
-		/* stop if there's a wall in front */
-		// 		if (((mhi_ReadIr1() + mhi_ReadIr4()) / 2) >= MCI_FRONT_WALL_TOO_CLOSE_THRESHOLD_RAW_30MM_HARD_CODED)
-		// 		{
-		// 			break;
-		// 		}
-		
-		/* prevent wall updates if moved more than 30% */
-		// 		if ( (mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount()) > ((uint32_t)(targetPosition / 2)) )
-		// 		{
-		// 			mci_SetLeftWallUpdateUnavailable();
-		// 			mci_SetRightWallUpdateUnavailable();
-		// 		}
-		
-		/* try to update global wall presences- no need to save return value */
-		// 		mci_CheckLeftWall();
-		// 		mci_CheckRightWall();
-		
-		/* check for walls for PID move forward */
+	{	
+		/* check for walls while moving diagonally for PID */
 		leftWall = mci_CheckLeftWallMoveForwardPid();
 		rightWall = mci_CheckRightWallMoveForwardPid();
 		
@@ -1095,6 +1081,12 @@ void mci_MoveForwardNSquares(int n){
 	mhi_ClearEncoder2EdgeCount();
 }
 
+/**
+* Rotate mouse 90 degrees right with some deacceleeration
+*
+* \param None
+* \retval None
+*/
 void mci_TurnRight90DegreesPID(void){
     uint32_t rightDone = 0u;
     uint32_t leftDone = 0u;
@@ -1167,6 +1159,12 @@ void mci_TurnRight90DegreesPID(void){
     mhi_ClearEncoder2EdgeCount();
 }
 
+/**
+* Rotate mouse 90 degrees left with some deacceleration
+*
+* \param None
+* \retval None
+*/
 void mci_TurnLeft90DegreesPID(void){
     uint32_t rightDone = 0u;
     uint32_t leftDone = 0u;
@@ -1239,31 +1237,6 @@ void mci_TurnLeft90DegreesPID(void){
     mhi_ClearEncoder2EdgeCount();
 }
 
-
-/**
-* Do a diagonal to the right
-* @param none
-* @return none
-*/
-void mci_MoveDiagonalRight(void){
-	uint32_t ir2Reading = mhi_ReadIr2();
-	uint32_t ir3Reading = mhi_ReadIr3();
-	mhi_PrintString("ir2: ");
-	mhi_PrintInt((uint32_t)ir2Reading);
-	mhi_PrintString("\t");
-	mhi_PrintString("ir3: ");
-	mhi_PrintInt((uint32_t)ir3Reading);
-	mhi_PrintString("\r\n");
-	
-}
-/**
-* Do a diagonal to the left
-* @param none
-* @return none	
-*/
-void mci_MoveDiagonalLeft(void){
-	
-}
 
 /*----------------------------------------------------------------------------*/
 /*                           Local Shared Functions                           */
