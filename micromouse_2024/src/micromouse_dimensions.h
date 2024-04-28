@@ -20,10 +20,13 @@
 #define MCI_MAZE_WALL_LENGTH_MM                 (180)
 /* width of maze pillar from side to side in millimeters */
 #define MCI_MAZE_PILLAR_WIDTH_MM                (12)
+
 /* IR sensor reading tolerances */
 #define MCI_FRONT_SENSOR_READING_TOLERANCE      (10)
-#define MCI_LEFT_SENSOR_READING_TOLERANCE       (70)
-#define MCI_RIGHT_SENSOR_READING_TOLERANCE      (70)
+#define MCI_LEFT_SENSOR_READING_TOLERANCE_TEST_MAZE       (80)
+#define MCI_RIGHT_SENSOR_READING_TOLERANCE_TEST_MAZE      (80)
+#define MCI_LEFT_SENSOR_READING_TOLERANCE_REAL_MAZE       (30)
+#define MCI_RIGHT_SENSOR_READING_TOLERANCE_REAL_MAZE      (30)
 
 /* DO NOT CHANGE BELOW:*/
 /* mouse size from top of mouse to bottom of mouse */

@@ -100,12 +100,14 @@ void mci_PrintWallSensorReadings(void)
 */
 void mci_PrintWallPresence(void)
 {
-//     mci_SetFrontWallUpdateAvailable();
-//     mci_SetLeftWallUpdateAvailable();
-//     mci_SetRightWallUpdateAvailable();
-//     mci_UpdateFrontWallPresence();
-//     mci_UpdateLeftWallPresence();
-//     mci_UpdateRightWallPresence();
+    /* comment below block when using w/ movement functions */
+    mci_SetFrontWallUpdateAvailable();
+    mci_SetLeftWallUpdateAvailable();
+    mci_SetRightWallUpdateAvailable();
+    mci_UpdateFrontWallPresence();
+    mci_UpdateLeftWallPresence();
+    mci_UpdateRightWallPresence();
+    /* comment above block when using w/ movement functions */
     
     /* check front */
     if (mci_CheckFrontWall() == MCI_WALL_FOUND)

@@ -39,9 +39,14 @@
 /* 
 * Using  found edges/rev & real maze: (28/103mm)*(177mm) = 48 edges/square
 * Using found edges/rev & test maze: (28/103mm)*(192mm) = 52 edges/square 
-* Value found experimentally: 64
+* Value found experimentally for test maze: 77
+* Value found experimentally for real maze: 75
 */
-#define MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE       (75)
+#define MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE_REAL_MAZE  (75)
+#define MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE_TEST_MAZE  (77)
+#define MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE \
+        MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE_TEST_MAZE
+        //MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQUARE_REAL_MAZE
 
 #define MCI_WHEEL_MOTOR_EDGES_PER_MAZE_SQR_CONTINOUS (89)
 /* c = pi*d; pi*100mm = 295.3mm */

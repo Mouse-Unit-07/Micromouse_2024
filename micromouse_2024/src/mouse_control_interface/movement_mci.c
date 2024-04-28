@@ -214,7 +214,7 @@ void mci_MoveForward1MazeSquarePid(void)
             break;
         }
         
-        /* prevent wall updates if moved more than 30% */
+        /* prevent wall updates if moved more than 50% */
         if ( (mhi_GetEncoder1EdgeCount() + mhi_GetEncoder2EdgeCount()) > ((uint32_t)(targetPosition / 2)) )
         {
             mci_SetLeftWallUpdateUnavailable();
