@@ -4,6 +4,7 @@
 #include "mouse_control_interface/walldetection_mci.h"
 #include "mouse_control_interface/movement_mci.h"
 #include "mouse_hardware_interface/clock_mhi.h"
+#include "mouse_control_interface/configswitch_mci.h"
 
 /* Variables */
 MouseState   state          = FIRST_TRAVERSAL;
@@ -44,6 +45,7 @@ unsigned int mirrorY(unsigned int y);
 bool isInRange(Point point);
 bool containsPoint(Point pointArr[], unsigned int arrSize, Point point);
 bool isExplored(Point point);
+void resetMouse(void);
 
 /* Stack */
 char pop(Direction* stack, unsigned int* top);
@@ -82,6 +84,9 @@ typedef struct{
 MouseState firstTraversal();
 MouseState backToStart();
 MouseState runToGoal();
+MouseState reset1();
+MouseState reset2();
+MouseState goToLastPoint();
 MouseState finished();
 void beginBacktrack(void);
 void beginRunToGoal(void);
@@ -91,16 +96,28 @@ MouseState (*stateFuncs[])(void) = {
 	firstTraversal,
 	backToStart,
 	runToGoal,
+	reset1,
+	reset2,
+	goToLastPoint,
 	finished
 };
 
 StateTransition stateTransitions[] = {
 	{FIRST_TRAVERSAL, FIRST_TRAVERSAL, NULL},
 	{FIRST_TRAVERSAL, BACK_TO_START, beginBacktrack},
+	{FIRST_TRAVERSAL, RESET_1, resetMouse},	
 	{BACK_TO_START, BACK_TO_START, NULL},
 	{BACK_TO_START, RUN_TO_GOAL, beginRunToGoal},
+	{BACK_TO_START, RESET_2, resetMouse},
 	{RUN_TO_GOAL, RUN_TO_GOAL, NULL},
 	{RUN_TO_GOAL, FINISHED, NULL},
+	{RUN_TO_GOAL, RESET_2, resetMouse},
+	{RESET_1, GO_TO_LAST_POINT, NULL},
+	{RESET_1, RESET_1, NULL},
+	{GO_TO_LAST_POINT, GO_TO_LAST_POINT, NULL},
+	{GO_TO_LAST_POINT, FIRST_TRAVERSAL, NULL},
+	{RESET_2, RESET_2, NULL},
+	{RESET_2, RUN_TO_GOAL, beginRunToGoal},
 	{FINISHED, FINISHED, NULL}
 };
 
@@ -126,6 +143,9 @@ void algoIterate()
 
 MouseState firstTraversal()
 {
+	if(mci_CheckConfigButtonPressed())
+		return RESET_1;
+	
 	if(searchCell(centerPoints, numCenterPoints))
 		return BACK_TO_START;
 		
@@ -134,6 +154,9 @@ MouseState firstTraversal()
 
 MouseState backToStart()
 {
+	if(mci_CheckConfigButtonPressed())
+		return RESET_2;
+	
 	if(runCell(&startPoint, 1))
 		return RUN_TO_GOAL;
 		
@@ -142,10 +165,34 @@ MouseState backToStart()
 
 MouseState runToGoal()
 {
+	if(mci_CheckConfigButtonPressed())
+		return RESET_2;
+	
 	if(runCell(&centerPoints, numCenterPoints))
 		return FINISHED;
 		
 	return RUN_TO_GOAL;
+}
+
+MouseState reset1()
+{
+	if(mci_CheckConfigButtonPressed())
+		return GO_TO_LAST_POINT;
+		
+	return RESET_1;
+}
+
+MouseState reset2()
+{
+	if(mci_CheckConfigButtonPressed())
+		return RUN_TO_GOAL;
+	
+	return RESET_2;	
+}
+
+MouseState goToLastPoint()
+{
+	return GO_TO_LAST_POINT;
 }
 
 MouseState finished()
@@ -384,6 +431,12 @@ bool containsPoint(Point pointArr[], unsigned int arrSize, Point point)
 bool isExplored(Point point)
 {
 	return mazeVisited[mazeIdx(point)];
+}
+
+void resetMouse()
+{
+	curPoint.x = curPoint.y = 0;
+	curDir = NORTH;
 }
 
 char pop(Direction *stack, unsigned int *top)
