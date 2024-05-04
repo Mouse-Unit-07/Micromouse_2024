@@ -4,216 +4,446 @@
 #include "mouse_control_interface/walldetection_mci.h"
 #include "mouse_control_interface/movement_mci.h"
 #include "mouse_hardware_interface/clock_mhi.h"
+#include "mouse_control_interface/configswitch_mci.h"
 
+/* Variables */
+MouseState   state          = FIRST_TRAVERSAL;
 MazeCell     mazeDiscovered [MAZE_LENGTH * MAZE_LENGTH] = {{FALSE, FALSE, FALSE, FALSE}};
 unsigned int mazeFlood      [MAZE_LENGTH * MAZE_LENGTH] = {UINT_MAX};
 bool         mazeVisited    [MAZE_LENGTH * MAZE_LENGTH] = {FALSE};
-char         moveStack      [STACK_SIZE];
-unsigned int stackTop        = 0;
-unsigned int curDir          = NORTH;
-unsigned int x = 0, y = 0;
+Direction    moveStack      [STACK_SIZE];
+unsigned int stackTop       = 0;
+Direction    curDir         = NORTH;
+Point        curPoint       = {0, 0};
+Point        startPoint     = {0, 0};
+Point        centerPoints[] =
+#if MAZE_LENGTH % 2
+{
+	{MAZE_LENGTH / 2, MAZE_LENGTH / 2}
+};
+#else
+{
+	{(MAZE_LENGTH / 2) - 1, (MAZE_LENGTH / 2) - 1},
+	{(MAZE_LENGTH / 2) - 1, MAZE_LENGTH / 2},
+	{MAZE_LENGTH / 2,       (MAZE_LENGTH / 2) - 1},
+	{MAZE_LENGTH / 2,       MAZE_LENGTH / 2}
+};
+#endif
+unsigned int numCenterPoints = sizeof(centerPoints) / sizeof(Point);
 
-MazeCell detectWalls();
+/* Traversal */
+bool searchCell(Point goalPoints[], unsigned int numGoalPoints);
+bool runCell(Point goalPoints[], unsigned int numGoalPoints);
 
-void floodFill       (MazeCell* srcMazeCells, unsigned int* destFlood);
-void floodFillRecurse(MazeCell* srcMazeCells, unsigned int x, unsigned int y, unsigned int cost, unsigned int* destFlood);
+/* Flood fill */
+void floodFill(Point destPoints[], unsigned int numPoints, bool open);
+void floodFillRecurse(Point point, unsigned int cost, bool open);
 
-unsigned int mazeIdx   (unsigned int x, unsigned int y);
-unsigned int mirrorY   (unsigned int y);
-bool         isInRange (unsigned int x, unsigned int y);
-bool         isGoal    (unsigned int x, unsigned int y);
-bool         isExplored(unsigned int x, unsigned int y);
+/* Utilities */
+unsigned int mazeIdx(Point point);
+unsigned int mirrorY(unsigned int y);
+bool isInRange(Point point);
+bool containsPoint(Point pointArr[], unsigned int arrSize, Point point);
+bool isExplored(Point point);
+void resetMouse(void);
 
-char pop (char* stack, unsigned int* top);
-void push(char* stack, unsigned int* top, char data);
+/* Stack */
+char pop(Direction* stack, unsigned int* top);
+void push(Direction* stack, unsigned int* top, char data);
 
+/* Movement */
+void move(Direction direction);
+void moveBackward(Direction direction);
+void moveNorth(void);
+void moveSouth(void);
+void moveEast(void);
+void moveWest(void);
 void moveForward(void);
 void moveBack(void);
 void moveLeft(void);
 void moveRight(void);
 
-void moveNorth(void);
-void moveSouth(void);
-void moveEast(void);
-void moveWest(void);
-
+/* Wall checking */
+MazeCell checkWalls(void);
 bool checkNorthWall(void);
 bool checkSouthWall(void);
 bool checkEastWall(void);
 bool checkWestWall(void);
-
 bool checkFrontWall(void);
 bool checkBackWall(void);
 bool checkLeftWall(void);
 bool checkRightWall(void);
 
-bool traverseCell()
+/* State machine */
+typedef struct{
+	MouseState curState;
+	MouseState nextState;
+	void (*func)(void);
+}StateTransition;
+
+MouseState firstTraversal();
+MouseState backToStart();
+MouseState runToGoal();
+MouseState reset1();
+MouseState reset2();
+MouseState goToLastPoint();
+MouseState finished();
+void beginBacktrack(void);
+void beginRunToGoal(void);
+StateTransition* getTransition(MouseState curState, MouseState nextState);
+
+MouseState (*stateFuncs[])(void) = {
+	firstTraversal,
+	backToStart,
+	runToGoal,
+	reset1,
+	reset2,
+	goToLastPoint,
+	finished
+};
+
+StateTransition stateTransitions[] = {
+	{FIRST_TRAVERSAL, FIRST_TRAVERSAL, NULL},
+	{FIRST_TRAVERSAL, BACK_TO_START, beginBacktrack},
+	{FIRST_TRAVERSAL, RESET_1, resetMouse},	
+	{BACK_TO_START, BACK_TO_START, NULL},
+	{BACK_TO_START, RUN_TO_GOAL, beginRunToGoal},
+	{BACK_TO_START, RESET_2, resetMouse},
+	{RUN_TO_GOAL, RUN_TO_GOAL, NULL},
+	{RUN_TO_GOAL, FINISHED, NULL},
+	{RUN_TO_GOAL, RESET_2, resetMouse},
+	{RESET_1, GO_TO_LAST_POINT, NULL},
+	{RESET_1, RESET_1, NULL},
+	{GO_TO_LAST_POINT, GO_TO_LAST_POINT, NULL},
+	{GO_TO_LAST_POINT, FIRST_TRAVERSAL, NULL},
+	{RESET_2, RESET_2, NULL},
+	{RESET_2, RUN_TO_GOAL, beginRunToGoal},
+	{FINISHED, FINISHED, NULL}
+};
+
+/* Function definitions */
+void algoIterate()
+{
+	MouseState nextState = stateFuncs[state]();
+	
+	StateTransition* transition = getTransition(state, nextState);
+	
+	if(transition == NULL)
+	{
+		//printf("ERROR: Invalid state transition!!!");
+		state = FINISHED;
+		return;
+	}
+	
+	if(transition->func != NULL)
+		transition->func();
+	
+	state = nextState;
+}
+
+MouseState firstTraversal()
+{
+	if(mci_CheckConfigButtonPressed())
+		return RESET_1;
+	
+	if(searchCell(centerPoints, numCenterPoints))
+		return BACK_TO_START;
+		
+	return FIRST_TRAVERSAL;
+}
+
+MouseState backToStart()
+{
+	if(mci_CheckConfigButtonPressed())
+		return RESET_2;
+	
+	if(runCell(&startPoint, 1))
+		return RUN_TO_GOAL;
+		
+	return BACK_TO_START;
+}
+
+MouseState runToGoal()
+{
+	if(mci_CheckConfigButtonPressed())
+		return RESET_2;
+	
+	if(runCell(&centerPoints, numCenterPoints))
+		return FINISHED;
+		
+	return RUN_TO_GOAL;
+}
+
+MouseState reset1()
+{
+	if(mci_CheckConfigButtonPressed())
+		return GO_TO_LAST_POINT;
+		
+	return RESET_1;
+}
+
+MouseState reset2()
+{
+	if(mci_CheckConfigButtonPressed())
+		return RUN_TO_GOAL;
+	
+	return RESET_2;	
+}
+
+MouseState goToLastPoint()
+{
+	return GO_TO_LAST_POINT;
+}
+
+MouseState finished()
+{
+	return FINISHED;
+}
+
+void beginBacktrack(void)
+{
+	floodFill(&startPoint, 1, FALSE);
+}
+
+void beginRunToGoal(void)
+{
+	floodFill(centerPoints, numCenterPoints, FALSE);
+}
+
+StateTransition* getTransition(MouseState curState, MouseState nextState)
+{
+	unsigned int numTransitions = sizeof(stateTransitions) / sizeof(StateTransition);
+	
+	for(int i = 0; i < numTransitions; i++)
+		if(stateTransitions[i].curState == curState && stateTransitions[i].nextState == nextState)
+			return &stateTransitions[i];
+	
+	return NULL;
+}
+
+bool searchCell(Point goalPoints[], unsigned int numGoalPoints)
 {
 	MazeCell thisCell;
 
-	if(isGoal(x,y))
+	if (containsPoint(goalPoints, numGoalPoints, curPoint))
 		return TRUE;
 
-	if(!mazeVisited[mazeIdx(x, y)]){
-		thisCell = mazeDiscovered[mazeIdx(x, y)] = detectWalls();
-		mazeVisited[mazeIdx(x, y)] = TRUE;
-		floodFill(mazeDiscovered, mazeFlood);
+	if (!mazeVisited[mazeIdx(curPoint)])
+	{
+		thisCell = mazeDiscovered[mazeIdx(curPoint)] = checkWalls();
+		mazeVisited[mazeIdx(curPoint)] = TRUE;
+		floodFill(goalPoints, numGoalPoints, TRUE);
 	}
 	else
-		thisCell = mazeDiscovered[mazeIdx(x, y)];
+		thisCell = mazeDiscovered[mazeIdx(curPoint)];
 
 	unsigned int cost = UINT_MAX;
-	char nextDir;
+	Direction nextDir;
 	bool foundUnvisitedCell = FALSE;
+	Point northPoint = {curPoint.x, curPoint.y + 1};
+	Point eastPoint = {curPoint.x + 1, curPoint.y};
+	Point southPoint = {curPoint.x, curPoint.y - 1};
+	Point westPoint = {curPoint.x - 1, curPoint.y};
 
-	//north
-	if(isInRange(x, y+1))
-		if(!thisCell.northWall && !isExplored(x, y+1))
-			if(mazeFlood[mazeIdx(x, y+1)] < cost){
+	if (isInRange(northPoint))
+		if (!thisCell.northWall && !isExplored(northPoint))
+			if (mazeFlood[mazeIdx(northPoint)] < cost)
+			{
 				nextDir = NORTH;
-				cost = mazeFlood[mazeIdx(x, y+1)];
+				cost = mazeFlood[mazeIdx(northPoint)];
 				foundUnvisitedCell = TRUE;
 			}
 
-	//east
-	if(isInRange(x+1, y))
-		if(!thisCell.eastWall && !isExplored(x+1, y))
-			if(mazeFlood[mazeIdx(x+1, y)] < cost){
+	if (isInRange(eastPoint))
+		if (!thisCell.eastWall && !isExplored(eastPoint))
+			if (mazeFlood[mazeIdx(eastPoint)] < cost)
+			{
 				nextDir = EAST;
-				cost = mazeFlood[mazeIdx(x+1, y)];
+				cost = mazeFlood[mazeIdx(eastPoint)];
 				foundUnvisitedCell = TRUE;
 			}
 
-	//south
-	if(isInRange(x, y-1))
-		if(!thisCell.southWall && !isExplored(x, y-1))
-			if(mazeFlood[mazeIdx(x, y-1)] < cost){
+	if (isInRange(southPoint))
+		if (!thisCell.southWall && !isExplored(southPoint))
+			if (mazeFlood[mazeIdx(southPoint)] < cost)
+			{
 				nextDir = SOUTH;
-				cost = mazeFlood[mazeIdx(x, y-1)];
+				cost = mazeFlood[mazeIdx(southPoint)];
 				foundUnvisitedCell = TRUE;
 			}
 
-	//west
-	if(isInRange(x-1, y))
-		if(!thisCell.westWall && !isExplored(x-1, y))
-			if(mazeFlood[mazeIdx(x-1, y)] < cost){
+	if (isInRange(westPoint))
+		if (!thisCell.westWall && !isExplored(westPoint))
+			if (mazeFlood[mazeIdx(westPoint)] < cost)
+			{
 				nextDir = WEST;
-				cost = mazeFlood[mazeIdx(x-1, y)];
+				cost = mazeFlood[mazeIdx(westPoint)];
 				foundUnvisitedCell = TRUE;
 			}
 
-	if(foundUnvisitedCell){
-		switch(nextDir){
-			case NORTH:
-				moveNorth();
-				push(moveStack, &stackTop, NORTH);
-				break;
-			case SOUTH:
-				moveSouth();
-				push(moveStack, &stackTop, SOUTH);
-				break;
-			case EAST:
-				moveEast();
-				push(moveStack, &stackTop, EAST);
-				break;
-			case WEST:
-				moveWest();
-				push(moveStack, &stackTop, WEST);
-				break;
-		}
+	if (foundUnvisitedCell)
+	{
+		move(nextDir);
+		push(moveStack, &stackTop, nextDir);
 	}
-	else{
-		char poppedMove = pop(moveStack, &stackTop);
-		switch(poppedMove){
-			case NORTH:
-				moveSouth();
-				break;
-			case SOUTH:
-				moveNorth();
-				break;
-			case EAST:
-				moveWest();
-				break;
-			case WEST:
-				moveEast();
-				break;
-		}
+	else
+	{
+		Direction poppedMove = pop(moveStack, &stackTop);
+		moveBackward(poppedMove);
 	}
-	
-	return isGoal(x,y);
-}
 
-void floodFill(MazeCell* srcMazeCells, unsigned int* destFlood){
-	for(int i = 0; i < MAZE_LENGTH * MAZE_LENGTH; i++)
-		destFlood[i] = UINT_MAX;
-
-	if(MAZE_LENGTH % 2)
-		floodFillRecurse(srcMazeCells, MAZE_LENGTH / 2, MAZE_LENGTH / 2, 0, destFlood);
-	else{
-		floodFillRecurse(srcMazeCells, (MAZE_LENGTH / 2) - 1, (MAZE_LENGTH / 2) - 1, 0, destFlood);
-		floodFillRecurse(srcMazeCells, (MAZE_LENGTH / 2) - 1, MAZE_LENGTH / 2,       0, destFlood);
-		floodFillRecurse(srcMazeCells, MAZE_LENGTH / 2,       (MAZE_LENGTH / 2) - 1, 0, destFlood);
-		floodFillRecurse(srcMazeCells, MAZE_LENGTH / 2,       MAZE_LENGTH / 2,       0, destFlood);
+	if (containsPoint(goalPoints, numGoalPoints, curPoint))
+	{
+		mazeDiscovered[mazeIdx(curPoint)] = checkWalls();
+		mazeVisited[mazeIdx(curPoint)] = TRUE;
+		return TRUE;
 	}
+
+	return FALSE;
 }
 
-void floodFillRecurse(MazeCell* srcMazeCells, unsigned int x, unsigned int y, unsigned int cost, unsigned int* destFlood){
-	MazeCell mc = srcMazeCells[mazeIdx(x, y)];
-	destFlood[mazeIdx(x, y)] = cost;
+bool runCell(Point goalPoints[], unsigned int numGoalPoints)
+{
+	MazeCell thisCell;
 
-	//north
-	if(isInRange(x, y+1))
-		if(!mc.northWall)
-			if(destFlood[mazeIdx(x, y+1)] > cost+1)
-				floodFillRecurse(srcMazeCells, x, y+1, cost+1, destFlood);
-	//south
-	if(isInRange(x, y-1))
-		if(!mc.southWall)
-			if(destFlood[mazeIdx(x, y-1)] > cost+1)
-				floodFillRecurse(srcMazeCells, x, y-1, cost+1, destFlood);
-	//east
-	if(isInRange(x+1, y))
-		if(!mc.eastWall)
-			if(destFlood[mazeIdx(x+1, y)] > cost+1)
-				floodFillRecurse(srcMazeCells, x+1, y, cost+1, destFlood);
-	//west
-	if(isInRange(x-1, y))
-		if(!mc.westWall)
-			if(destFlood[mazeIdx(x-1, y)] > cost+1)
-				floodFillRecurse(srcMazeCells, x-1, y, cost+1, destFlood);
+	if (containsPoint(goalPoints, numGoalPoints, curPoint))
+		return TRUE;
+
+	thisCell = mazeDiscovered[mazeIdx(curPoint)];
+
+	unsigned int cost = UINT_MAX;
+	Direction nextDir;
+	Point northPoint = {curPoint.x, curPoint.y + 1};
+	Point eastPoint = {curPoint.x + 1, curPoint.y};
+	Point southPoint = {curPoint.x, curPoint.y - 1};
+	Point westPoint = {curPoint.x - 1, curPoint.y};
+
+	if (isInRange(northPoint))
+		if (!thisCell.northWall && isExplored(northPoint))
+			if (mazeFlood[mazeIdx(northPoint)] < cost)
+			{
+				nextDir = NORTH;
+				cost = mazeFlood[mazeIdx(northPoint)];
+			}
+
+	if (isInRange(eastPoint))
+		if (!thisCell.eastWall && isExplored(eastPoint))
+			if (mazeFlood[mazeIdx(eastPoint)] < cost)
+			{
+				nextDir = EAST;
+				cost = mazeFlood[mazeIdx(eastPoint)];
+			}
+
+	if (isInRange(southPoint))
+		if (!thisCell.southWall && isExplored(southPoint))
+			if (mazeFlood[mazeIdx(southPoint)] < cost)
+			{
+				nextDir = SOUTH;
+				cost = mazeFlood[mazeIdx(southPoint)];
+			}
+
+	if (isInRange(westPoint))
+		if (!thisCell.westWall && isExplored(westPoint))
+			if (mazeFlood[mazeIdx(westPoint)] < cost)
+			{
+				nextDir = WEST;
+				cost = mazeFlood[mazeIdx(westPoint)];
+			}
+
+	move(nextDir);
+
+	if (containsPoint(goalPoints, numGoalPoints, curPoint))
+		return TRUE;
+
+	return FALSE;
 }
 
-unsigned int mazeIdx(unsigned int x, unsigned int y){
-	return (mirrorY(y) * MAZE_LENGTH) + x;
+void floodFill(Point destPoints[], unsigned int numPoints, bool open)
+{
+	for (int i = 0; i < MAZE_LENGTH * MAZE_LENGTH; i++)
+		mazeFlood[i] = UINT_MAX;
+
+	for (unsigned int i = 0; i < numPoints; i++)
+		if (open || mazeVisited[mazeIdx(destPoints[i])])
+			floodFillRecurse(destPoints[i], 0, open);
 }
 
-unsigned int mirrorY(unsigned int y){
+void floodFillRecurse(Point point, unsigned int cost, bool open)
+{
+	unsigned int x = point.x, y = point.y;
+	MazeCell mc = mazeDiscovered[mazeIdx(point)];
+	mazeFlood[mazeIdx(point)] = cost;
+
+	Point northPoint = {x, y + 1};
+	Point southPoint = {x, y - 1};
+	Point eastPoint = {x + 1, y};
+	Point westPoint = {x - 1, y};
+
+	if (isInRange(northPoint))
+		if (open || mazeVisited[mazeIdx(northPoint)])
+			if (!mc.northWall)
+				if (mazeFlood[mazeIdx(northPoint)] > cost + 1)
+					floodFillRecurse(northPoint, cost + 1, open);
+
+	if (isInRange(southPoint))
+		if (open || mazeVisited[mazeIdx(southPoint)])
+			if (!mc.southWall)
+				if (mazeFlood[mazeIdx(southPoint)] > cost + 1)
+					floodFillRecurse(southPoint, cost + 1, open);
+
+	if (isInRange(eastPoint))
+		if (open || mazeVisited[mazeIdx(eastPoint)])
+			if (!mc.eastWall)
+				if (mazeFlood[mazeIdx(eastPoint)] > cost + 1)
+					floodFillRecurse(eastPoint, cost + 1, open);
+
+	if (isInRange(westPoint))
+		if (open || mazeVisited[mazeIdx(westPoint)])
+			if (!mc.westWall)
+				if (mazeFlood[mazeIdx(westPoint)] > cost + 1)
+					floodFillRecurse(westPoint, cost + 1, open);
+}
+
+unsigned int mazeIdx(Point point)
+{
+	return (mirrorY(point.y) * MAZE_LENGTH) + point.x;
+}
+
+unsigned int mirrorY(unsigned int y)
+{
 	return (MAZE_LENGTH - 1) - y;
 }
 
-bool isInRange(unsigned int x, unsigned int y){
-	return x >= 0 && x < MAZE_LENGTH && y >= 0 && y < MAZE_LENGTH;
+bool isInRange(Point point)
+{
+	return point.x >= 0 && point.x < MAZE_LENGTH && point.y >= 0 && point.y < MAZE_LENGTH;
 }
 
-bool isGoal(unsigned int x, unsigned int y){
-	if(MAZE_LENGTH % 2){
-		return ((x == (MAZE_LENGTH / 2)) && (y == (MAZE_LENGTH / 2)));
-	}
-	else{
-		return (
-		( x == ((MAZE_LENGTH / 2) - 1) || x == (MAZE_LENGTH / 2) ) &&
-		( y == ((MAZE_LENGTH / 2) - 1) || y == (MAZE_LENGTH / 2) )
-		);
-	}
+bool containsPoint(Point pointArr[], unsigned int arrSize, Point point)
+{
+	for (int i = 0; i < arrSize; i++)
+		if (point.x == pointArr[i].x && point.y == pointArr[i].y)
+			return TRUE;
+
+	return FALSE;
 }
 
-bool isExplored(unsigned int x, unsigned int y){
-	return mazeVisited[mazeIdx(x, y)];
+bool isExplored(Point point)
+{
+	return mazeVisited[mazeIdx(point)];
 }
 
-char pop(char* stack, unsigned int* top){
-	if(*top == 0){
-		mhi_PrintString("ERROR: Popping empty stack!\n\r");
+void resetMouse()
+{
+	curPoint.x = curPoint.y = 0;
+	curDir = NORTH;
+}
+
+char pop(Direction *stack, unsigned int *top)
+{
+	if (*top == 0)
+	{
+		//printf("ERROR: Popping empty stack!\n\r");
 		exit(1);
 	}
 
@@ -221,15 +451,56 @@ char pop(char* stack, unsigned int* top){
 	return stack[*top];
 }
 
-void push(char* stack, unsigned int* top, char data){
-	if(*top == STACK_SIZE){
-		mhi_PrintString("ERROR: Pushing full stack!\n\r");
+void push(Direction *stack, unsigned int *top, char data)
+{
+	if (*top == STACK_SIZE)
+	{
+		//printf("ERROR: Pushing full stack!\n\r");
 		exit(1);
 	}
 
 	stack[*top] = data;
 	(*top)++;
 }
+
+void move(Direction direction)
+{
+	switch (direction)
+	{
+		case NORTH:
+			moveNorth();
+			break;
+		case SOUTH:
+			moveSouth();
+			break;
+		case EAST:
+			moveEast();
+			break;
+		case WEST:
+			moveWest();
+			break;
+	}
+}
+
+void moveBackward(Direction direction)
+{
+	switch (direction)
+	{
+		case NORTH:
+			moveSouth();
+			break;
+		case SOUTH:
+			moveNorth();
+			break;
+		case EAST:
+			moveWest();
+			break;
+		case WEST:
+			moveEast();
+			break;
+	}
+}
+
 
 void moveForward(void)
 {
@@ -262,7 +533,8 @@ void moveRight(void)
 
 void moveNorth(void)
 {
-	switch(curDir){
+	switch (curDir)
+	{
 		case NORTH:
 			moveForward();
 			break;
@@ -276,13 +548,14 @@ void moveNorth(void)
 			moveRight();
 			break;
 	}
-	y++;
+	curPoint.y++;
 	curDir = NORTH;
 }
 
 void moveSouth(void)
 {
-	switch(curDir){
+	switch (curDir)
+	{
 		case NORTH:
 			moveBack();
 			break;
@@ -296,13 +569,14 @@ void moveSouth(void)
 			moveLeft();
 			break;
 	}
-	y--;
+	curPoint.y--;
 	curDir = SOUTH;
 }
 
 void moveEast(void)
 {
-	switch(curDir){
+	switch (curDir)
+	{
 		case NORTH:
 			moveRight();
 			break;
@@ -316,13 +590,14 @@ void moveEast(void)
 			moveBack();
 			break;
 	}
-	x++;
+	curPoint.x++;
 	curDir = EAST;
 }
 
 void moveWest(void)
 {
-	switch(curDir){
+	switch (curDir)
+	{
 		case NORTH:
 			moveLeft();
 			break;
@@ -336,11 +611,11 @@ void moveWest(void)
 			moveForward();
 			break;
 	}
-	x--;
+	curPoint.x--;
 	curDir = WEST;
 }
 
-MazeCell detectWalls()
+MazeCell checkWalls()
 {
 	MazeCell cell;
 	
@@ -418,7 +693,7 @@ bool checkFrontWall(void)
 
 bool checkBackWall(void)
 {
-	if(x == 0 && y == 0)
+	if(curPoint.x == 0 && curPoint.y == 0)
 		return TRUE;
 	
 	return FALSE;
