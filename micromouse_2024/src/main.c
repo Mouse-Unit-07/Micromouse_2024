@@ -25,6 +25,9 @@
 #include "mouse_control_interface/time_mci.h"
 #include "algo/algo.h"
 
+#include "algo/algo.h"
+#include "algo/wallfollower_algo.h"
+
 /*----------------------------------------------------------------------------*/
 /*                                Definitions                                 */
 /*----------------------------------------------------------------------------*/
